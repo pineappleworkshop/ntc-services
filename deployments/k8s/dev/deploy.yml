@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: omnisat-api
+  namespace: omnisat
+spec:
+  selector:
+    matchLabels:
+      app: omnisat-api
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: omnisat-api
+    spec:
+      containers:
+        - name: omnisat-api
+          image: pineappleworkshop/omnisat-api:0.0.18
+          env:
+            - name: ENV
+              value: 'dev'

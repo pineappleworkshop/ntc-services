@@ -1,0 +1,36 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: pw-mongodb-replicaset-0
+  namespace: omnisat
+spec:
+  type: ExternalName
+  externalName: pw-mongodb-replicaset-0.default.svc.cluster.local
+  ports:
+  - port: 27017
+
+--- 
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: pw-mongodb-replicaset-1
+  namespace: omnisat
+spec:
+  type: ExternalName
+  externalName: pw-mongodb-replicaset-1.default.svc.cluster.local
+  ports:
+  - port: 27017
+
+--- 
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: pw-mongodb-replicaset-2
+  namespace: omnisat
+spec:
+  type: ExternalName
+  externalName: pw-mongodb-replicaset-2.default.svc.cluster.local
+  ports:
+  - port: 27017
