@@ -207,7 +207,7 @@ LOOP:
 				s.Txs <- txMsg
 			}
 		}()
-		time.Sleep(time.Second * 20)
+		time.Sleep(time.Second * 30)
 	}
 	goto LOOP
 }
