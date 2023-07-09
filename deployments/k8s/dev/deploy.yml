@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: ntc-services
-          image: pineappleworkshop/ntc-services:0.0.1
+          image: pineappleworkshop/ntc-services:0.0.2
           env:
             - name: ENV
               value: 'dev'
