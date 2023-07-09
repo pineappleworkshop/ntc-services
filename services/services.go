@@ -8,7 +8,7 @@ func StartServices() (err error) {
 		return err
 	}
 
-	go SCANNER.CheckBlocks()
+	SCANNER.CheckBlocks()
 	go SCANNER.ScanTxs()
 	go SCANNER.ScanBlock()
 
