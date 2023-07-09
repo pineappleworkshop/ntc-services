@@ -191,43 +191,23 @@ LOOP:
 
 		log.Infof("Block Height: %+v", blockVerbose.Height)
 
-		block := models.NewBlockRaw(blockVerbose)
-		if err := block.Save(); err != nil {
-			log.Error(err)
-		}
-
-		//go func() {
-		//	blockRaw := models.NewBlockRaw(blockVerbose)
-		//	if err := block.Save(); err != nil {
-		//		log.Error(err)
-		//	}
-		//
-		//	for txHeight, tx := range blockVerbose.Tx {
-		//		txMsg := TxMsg{
-		//			TxID:     tx,
-		//			BlockRaw: blockRaw,
-		//			Height:   int64(txHeight),
-		//			LastTxID: blockRaw.Block.Tx[len(blockRaw.Block.Tx)-1],
-		//		}
-		//		s.Txs <- txMsg
-		//	}
-		//}()
-		//time.Sleep(time.Second * 30)
-
 		blockRaw := models.NewBlockRaw(blockVerbose)
-		if err := block.Save(); err != nil {
+		if err := blockRaw.Save(); err != nil {
 			log.Error(err)
 		}
 
-		for txHeight, tx := range blockVerbose.Tx {
-			txMsg := TxMsg{
-				TxID:       tx,
-				BlockRawID: blockRaw.ID,
-				Height:     int64(txHeight),
-				LastTxID:   blockRaw.Block.Tx[len(blockRaw.Block.Tx)-1],
+		go func() {
+			for txHeight, tx := range blockVerbose.Tx {
+				txMsg := TxMsg{
+					TxID:       tx,
+					BlockRawID: blockRaw.ID,
+					Height:     int64(txHeight),
+					LastTxID:   blockRaw.Block.Tx[len(blockRaw.Block.Tx)-1],
+				}
+				s.Txs <- txMsg
 			}
-			s.Txs <- txMsg
-		}
+		}()
+		time.Sleep(time.Second * 20)
 	}
 	goto LOOP
 }
