@@ -2,7 +2,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: pw-mongodb-replicaset-0
-  namespace: omnisat
+  namespace: ntc
 spec:
   type: ExternalName
   externalName: pw-mongodb-replicaset-0.stores.svc.cluster.local
@@ -15,7 +15,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: pw-mongodb-replicaset-1
-  namespace: omnisat
+  namespace: ntc
 spec:
   type: ExternalName
   externalName: pw-mongodb-replicaset-1.stores.svc.cluster.local
@@ -28,7 +28,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: pw-mongodb-replicaset-2
-  namespace: omnisat
+  namespace: ntc
 spec:
   type: ExternalName
   externalName: pw-mongodb-replicaset-2.stores.svc.cluster.local

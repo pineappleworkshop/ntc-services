@@ -2,13 +2,13 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    app: omnisat-api
-  name: omnisat-api
-  namespace: omnisat
+    app: ntc-services
+  name: ntc-services
+  namespace: ntc
 spec:
   ports:
     - port: 3444
       targetPort: 3444
       protocol: TCP
   selector:
-    app: omnisat-api
+    app: ntc-services

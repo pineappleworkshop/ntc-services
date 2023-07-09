@@ -82,11 +82,6 @@ func (m *Mongo) Connect() error {
 		return err
 	}
 
-	m.Client = client
-	if err := m.Client.Ping(ctx, nil); err != nil {
-		return err
-	}
-
 	if err := m.CreateIndexes(); err != nil {
 		return err
 	}

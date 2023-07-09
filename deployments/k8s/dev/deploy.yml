@@ -1,23 +1,23 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: omnisat-api
-  namespace: omnisat
+  name: ntc-services
+  namespace: ntc
 spec:
   selector:
     matchLabels:
-      app: omnisat-api
+      app: ntc-services
   replicas: 1
   strategy:
     type: RollingUpdate
   template:
     metadata:
       labels:
-        app: omnisat-api
+        app: ntc-services
     spec:
       containers:
-        - name: omnisat-api
-          image: pineappleworkshop/omnisat-api:0.0.18
+        - name: ntc-services
+          image: pineappleworkshop/ntc-services:0.0.1
           env:
             - name: ENV
               value: 'dev'
