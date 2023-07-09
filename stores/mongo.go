@@ -2,11 +2,11 @@ package stores
 
 import (
 	"context"
-	"omnisat-api/config"
-	"time"
-
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"ntc-services/config"
+	"time"
 )
 
 type Mongo struct {
@@ -95,15 +95,25 @@ func (m *Mongo) Connect() error {
 }
 
 func (m *Mongo) CreateIndexes() error {
-	// if _, err := m.Client.Database(DB_NAME).Collection(DB_COLLECTION_EMAIL_LIST).Indexes().CreateOne(
-	// 	context.Background(),
-	// 	mongo.IndexModel{
-	// 		Keys:    bson.D{{Key: "phone", Value: 1}},
-	// 		Options: options.Index().SetUnique(true),
-	// 	},
-	// ); err != nil {
-	// 	return err
-	// }
+	if _, err := m.Client.Database(DB_NAME).Collection(DB_COLLECTION_BLOCKS_RAW).Indexes().CreateOne(
+		context.Background(),
+		mongo.IndexModel{
+			Keys:    bson.D{{Key: "hash", Value: 1}},
+			Options: options.Index().SetUnique(true),
+		},
+	); err != nil {
+		return err
+	}
+
+	if _, err := m.Client.Database(DB_NAME).Collection(DB_COLLECTION_TXS_RAW).Indexes().CreateOne(
+		context.Background(),
+		mongo.IndexModel{
+			Keys:    bson.D{{Key: "hash", Value: 1}},
+			Options: options.Index().SetUnique(true),
+		},
+	); err != nil {
+		return err
+	}
 
 	return nil
 }

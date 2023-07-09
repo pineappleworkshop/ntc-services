@@ -6,6 +6,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"ntc-services/config"
 	"ntc-services/handlers"
+	"ntc-services/services"
 	"ntc-services/stores"
 	"os"
 	"strconv"
@@ -33,6 +34,10 @@ func main() {
 	e.Use(middleware.CORS())
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
+
+	if err := services.StartServices(); err != nil {
+		panic(err)
+	}
 
 	initPublicRoutes(e)
 

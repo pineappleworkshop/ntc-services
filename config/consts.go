@@ -3,7 +3,7 @@ package config
 const (
 	VERSION      = "0.0.18"
 	PORT         = 3444
-	SERVICE_NAME = "omnisat-api"
+	SERVICE_NAME = "ntc-services"
 
 	TEST        = "test"
 	WORKSTATION = "workstation"
@@ -11,7 +11,7 @@ const (
 	STAGE       = "stage"
 	PROD        = "prod"
 
-	CONSUL_KV           = "omnisat-api"
+	CONSUL_KV           = "ntc"
 	CONSUL_HOST_DEV     = "localhost"
 	CONSUL_PORT_DEV     = "8500"
 	CONSUL_HOST_CLUSTER = "consul-server"

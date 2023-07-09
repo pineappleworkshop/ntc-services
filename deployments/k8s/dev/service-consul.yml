@@ -2,7 +2,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: consul-server
-  namespace: omnisat
+  namespace: ntc
 spec:
   type: ExternalName
   externalName: consul-server.default.svc.cluster.local

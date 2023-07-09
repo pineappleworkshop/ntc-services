@@ -73,7 +73,6 @@ func (c *Config) setupConfig() {
 		for _, mongoHost := range mongoRCI {
 			mongoRC = append(mongoRC, mongoHost.(string))
 		}
-
 		c.MongoRC = mongoRC
 	} else {
 		c.MongoRC = MONGOHOSTS_WORKSTATION
@@ -118,4 +117,28 @@ func GetLogLevel() (*string, error) {
 		return nil, errors.New("no log level found")
 	}
 	return &logLevel, nil
+}
+
+func GetBTCRPCHost() (*string, error) {
+	host := viper.GetString("btc_rpc_host")
+	if host == "" {
+		return nil, errors.New("no BTC host found")
+	}
+	return &host, nil
+}
+
+func GetBTCRPCUser() (*string, error) {
+	user := viper.GetString("btc_rpc_user")
+	if user == "" {
+		return nil, errors.New("no BTC user found")
+	}
+	return &user, nil
+}
+
+func GetBTCRPCPassword() (*string, error) {
+	password := viper.GetString("btc_rpc_pass")
+	if password == "" {
+		return nil, errors.New("no BTC password found")
+	}
+	return &password, nil
 }

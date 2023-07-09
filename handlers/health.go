@@ -3,8 +3,8 @@ package handlers
 import (
 	"github.com/labstack/echo/v4"
 	"net/http"
-	"omnisat-api/config"
-	"omnisat-api/models"
+	"ntc-services/config"
+	"ntc-services/models"
 )
 
 func HealthHandler(c echo.Context) error {
