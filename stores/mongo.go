@@ -108,7 +108,7 @@ func (m *Mongo) CreateIndexes() error {
 	if _, err := m.Client.Database(DB_NAME).Collection(DB_COLLECTION_TXS_RAW).Indexes().CreateOne(
 		context.Background(),
 		mongo.IndexModel{
-			Keys:    bson.D{{Key: "hash", Value: 1}},
+			Keys:    bson.D{{Key: "tx_id", Value: 1}},
 			Options: options.Index().SetUnique(true),
 		},
 	); err != nil {

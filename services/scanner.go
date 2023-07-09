@@ -4,6 +4,7 @@ import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/rpcclient"
 	log "github.com/sirupsen/logrus"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"ntc-services/config"
 	"ntc-services/models"
 	"sync"
@@ -96,10 +97,10 @@ type Scanner struct {
 }
 
 type TxMsg struct {
-	TxID     string
-	BlockRaw *models.BlockRaw
-	Height   int64
-	LastTxID string
+	TxID       string
+	BlockRawID primitive.ObjectID
+	Height     int64
+	LastTxID   string
 }
 
 func NewScanner() (*Scanner, error) {
@@ -146,10 +147,10 @@ func (s *Scanner) CheckBlocks() {
 	for _, br := range uncompletedBlockRaws {
 		for txHeight, tx := range br.Block.Tx {
 			txMsg := TxMsg{
-				TxID:     tx,
-				BlockRaw: br,
-				Height:   int64(txHeight),
-				LastTxID: br.Block.Tx[len(br.Block.Tx)-1],
+				TxID:       tx,
+				BlockRawID: br.ID,
+				Height:     int64(txHeight),
+				LastTxID:   br.Block.Tx[len(br.Block.Tx)-1],
 			}
 			s.Txs <- txMsg
 		}
@@ -195,24 +196,38 @@ LOOP:
 			log.Error(err)
 		}
 
-		go func() {
-			blockRaw := models.NewBlockRaw(blockVerbose)
-			if err := block.Save(); err != nil {
-				log.Error(err)
-			}
+		//go func() {
+		//	blockRaw := models.NewBlockRaw(blockVerbose)
+		//	if err := block.Save(); err != nil {
+		//		log.Error(err)
+		//	}
+		//
+		//	for txHeight, tx := range blockVerbose.Tx {
+		//		txMsg := TxMsg{
+		//			TxID:     tx,
+		//			BlockRaw: blockRaw,
+		//			Height:   int64(txHeight),
+		//			LastTxID: blockRaw.Block.Tx[len(blockRaw.Block.Tx)-1],
+		//		}
+		//		s.Txs <- txMsg
+		//	}
+		//}()
+		//time.Sleep(time.Second * 30)
 
-			for txHeight, tx := range blockVerbose.Tx {
-				txMsg := TxMsg{
-					TxID:     tx,
-					BlockRaw: blockRaw,
-					Height:   int64(txHeight),
-					LastTxID: blockRaw.Block.Tx[len(blockRaw.Block.Tx)-1],
-				}
-				s.Txs <- txMsg
-			}
-		}()
+		blockRaw := models.NewBlockRaw(blockVerbose)
+		if err := block.Save(); err != nil {
+			log.Error(err)
+		}
 
-		time.Sleep(time.Second * 15)
+		for txHeight, tx := range blockVerbose.Tx {
+			txMsg := TxMsg{
+				TxID:       tx,
+				BlockRawID: blockRaw.ID,
+				Height:     int64(txHeight),
+				LastTxID:   blockRaw.Block.Tx[len(blockRaw.Block.Tx)-1],
+			}
+			s.Txs <- txMsg
+		}
 	}
 	goto LOOP
 }
@@ -235,13 +250,13 @@ func (s *Scanner) ScanTxs() {
 					log.Error(err)
 				}
 
-				tx := models.NewTxRaw(txMsg.BlockRaw.ID, txMsg.Height, txRaw)
+				tx := models.NewTxRaw(txMsg.BlockRawID, txMsg.Height, txRaw)
 				if err := tx.Save(); err != nil {
 					log.Error(err)
 				}
 
 				if tx.TxID == txMsg.LastTxID {
-					blockRaw, err := models.GetBlockRawByID(txMsg.BlockRaw.ID.Hex())
+					blockRaw, err := models.GetBlockRawByID(txMsg.BlockRawID.Hex())
 					if err != nil {
 						log.Error(err)
 					}
