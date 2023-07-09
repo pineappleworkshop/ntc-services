@@ -90,10 +90,11 @@ We need to essentially dump redb to mongodb.
 */
 
 type Scanner struct {
-	BTCClient   *rpcclient.Client
-	WaitGroup   *sync.WaitGroup
-	BlockHeight int64
-	Txs         chan TxMsg
+	BTCClient      *rpcclient.Client
+	WaitGroup      *sync.WaitGroup
+	BlockHeight    int64
+	Txs            chan TxMsg
+	CheckingBlocks bool
 }
 
 type TxMsg struct {
@@ -132,13 +133,15 @@ func NewScanner() (*Scanner, error) {
 	}
 
 	return &Scanner{
-		BTCClient:   client,
-		BlockHeight: 1,
-		Txs:         make(chan TxMsg),
+		BTCClient:      client,
+		BlockHeight:    1,
+		Txs:            make(chan TxMsg),
+		CheckingBlocks: false,
 	}, nil
 }
 
 func (s *Scanner) CheckBlocks() {
+	s.CheckingBlocks = true
 	uncompletedBlockRaws, err := models.GetUncompletedBlockRaws()
 	if err != nil {
 		log.Error(err)
@@ -155,11 +158,16 @@ func (s *Scanner) CheckBlocks() {
 			s.Txs <- txMsg
 		}
 	}
+	s.CheckingBlocks = false
 }
 
 func (s *Scanner) ScanBlock() {
 LOOP:
 	time.Sleep(time.Second * 5)
+
+	if s.CheckingBlocks {
+		goto LOOP
+	}
 
 	var startingHeight int64
 	latestBlock, err := models.GetLatestBlock()
