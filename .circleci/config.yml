@@ -70,7 +70,7 @@ workflows:
     jobs:
       - gcp-gcr/build-and-push-image:
           image: ntc-services
-          tag: 0.0.2
+          tag: 0.0.3
           registry-url: gcr.io
           context: ntc-services-dev
           filters:
@@ -82,8 +82,8 @@ workflows:
           container: ntc-services
           deployment: ntc-services
           image: gcr.io/pineappleworkshop/ntc-services
-          tag: 0.0.2
-          namespace: ntc
+          tag: 0.0.3
+          namespace: default
           filters:
             branches:
               only:
@@ -98,8 +98,8 @@ workflows:
           container: ntc-services
           deployment: ntc-services
           image: gcr.io/pineappleworkshop/ntc-services
-          tag: 0.0.2
-          namespace: ntc
+          tag: 0.0.3
+          namespace: default
           context: ntc-services-prod
           filters:
             branches:
