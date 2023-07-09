@@ -40,7 +40,6 @@ func main() {
 	}
 
 	initPublicRoutes(e)
-
 	go log.Fatal(e.Start(":" + strconv.Itoa(config.PORT)))
 }
 
