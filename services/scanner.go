@@ -195,22 +195,38 @@ LOOP:
 			log.Error(err)
 		}
 
-		go func() {
-			block := models.NewBlockRaw(blockVerbose)
-			if err := block.Save(); err != nil {
-				log.Error(err)
-			}
+		//go func() {
+		//	blockRaw := models.NewBlockRaw(blockVerbose)
+		//	if err := block.Save(); err != nil {
+		//		log.Error(err)
+		//	}
+		//
+		//	for txHeight, tx := range blockVerbose.Tx {
+		//		txMsg := TxMsg{
+		//			Hash:       tx,
+		//			BlockRaw:   blockRaw,
+		//			Height:     int64(txHeight),
+		//			LastTxHash: blockRaw.Block.Tx[len(blockRaw.Block.Tx)-1],
+		//		}
+		//		s.Txs <- txMsg
+		//	}
+		//}()
 
-			for txHeight, tx := range blockVerbose.Tx {
-				txMsg := TxMsg{
-					Hash:       tx,
-					BlockRaw:   block,
-					Height:     int64(txHeight),
-					LastTxHash: block.Block.Tx[len(block.Block.Tx)-1],
-				}
-				s.Txs <- txMsg
+		blockRaw := models.NewBlockRaw(blockVerbose)
+		if err := block.Save(); err != nil {
+			log.Error(err)
+		}
+
+		for txHeight, tx := range blockVerbose.Tx {
+			txMsg := TxMsg{
+				Hash:       tx,
+				BlockRaw:   blockRaw,
+				Height:     int64(txHeight),
+				LastTxHash: blockRaw.Block.Tx[len(blockRaw.Block.Tx)-1],
 			}
-		}()
+			s.Txs <- txMsg
+		}
+
 		time.Sleep(time.Second * 10)
 	}
 	goto LOOP
