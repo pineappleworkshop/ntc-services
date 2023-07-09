@@ -211,13 +211,13 @@ LOOP:
 				s.Txs <- txMsg
 			}
 		}()
-		time.Sleep(time.Minute)
+		time.Sleep(time.Second * 10)
 	}
 	goto LOOP
 }
 
 func (s *Scanner) ScanTxs() {
-	semaphore := NewSemaphore(10)
+	semaphore := NewSemaphore(12)
 	for {
 		select {
 		case txMsg := <-s.Txs:

@@ -28,7 +28,7 @@ func (m *Mongo) Connect() error {
 	fmt.Println(fmt.Sprintf("%+v", m.Hosts))
 	fmt.Println("=============================")
 
-	t := 120 * time.Second
+	t := 30 * time.Second
 	ctx, _ := context.WithTimeout(context.Background(), t)
 
 	opts := &options.ClientOptions{
