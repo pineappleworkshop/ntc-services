@@ -96,10 +96,10 @@ type Scanner struct {
 }
 
 type TxMsg struct {
-	Hash       string
-	BlockRaw   *models.BlockRaw
-	Height     int64
-	LastTxHash string
+	TxID     string
+	BlockRaw *models.BlockRaw
+	Height   int64
+	LastTxID string
 }
 
 func NewScanner() (*Scanner, error) {
@@ -146,10 +146,10 @@ func (s *Scanner) CheckBlocks() {
 	for _, br := range uncompletedBlockRaws {
 		for txHeight, tx := range br.Block.Tx {
 			txMsg := TxMsg{
-				Hash:       tx,
-				BlockRaw:   br,
-				Height:     int64(txHeight),
-				LastTxHash: br.Block.Tx[len(br.Block.Tx)-1],
+				TxID:     tx,
+				BlockRaw: br,
+				Height:   int64(txHeight),
+				LastTxID: br.Block.Tx[len(br.Block.Tx)-1],
 			}
 			s.Txs <- txMsg
 		}
@@ -195,39 +195,24 @@ LOOP:
 			log.Error(err)
 		}
 
-		//go func() {
-		//	blockRaw := models.NewBlockRaw(blockVerbose)
-		//	if err := block.Save(); err != nil {
-		//		log.Error(err)
-		//	}
-		//
-		//	for txHeight, tx := range blockVerbose.Tx {
-		//		txMsg := TxMsg{
-		//			Hash:       tx,
-		//			BlockRaw:   blockRaw,
-		//			Height:     int64(txHeight),
-		//			LastTxHash: blockRaw.Block.Tx[len(blockRaw.Block.Tx)-1],
-		//		}
-		//		s.Txs <- txMsg
-		//	}
-		//}()
-
-		blockRaw := models.NewBlockRaw(blockVerbose)
-		if err := block.Save(); err != nil {
-			log.Error(err)
-		}
-
-		for txHeight, tx := range blockVerbose.Tx {
-			txMsg := TxMsg{
-				Hash:       tx,
-				BlockRaw:   blockRaw,
-				Height:     int64(txHeight),
-				LastTxHash: blockRaw.Block.Tx[len(blockRaw.Block.Tx)-1],
+		go func() {
+			blockRaw := models.NewBlockRaw(blockVerbose)
+			if err := block.Save(); err != nil {
+				log.Error(err)
 			}
-			s.Txs <- txMsg
-		}
 
-		time.Sleep(time.Second * 10)
+			for txHeight, tx := range blockVerbose.Tx {
+				txMsg := TxMsg{
+					TxID:     tx,
+					BlockRaw: blockRaw,
+					Height:   int64(txHeight),
+					LastTxID: blockRaw.Block.Tx[len(blockRaw.Block.Tx)-1],
+				}
+				s.Txs <- txMsg
+			}
+		}()
+
+		time.Sleep(time.Second * 15)
 	}
 	goto LOOP
 }
@@ -240,12 +225,12 @@ func (s *Scanner) ScanTxs() {
 			semaphore.Acquire()
 			go func() {
 				defer semaphore.Release()
-				hash, err := chainhash.NewHashFromStr(txMsg.Hash)
+				txID, err := chainhash.NewHashFromStr(txMsg.TxID)
 				if err != nil {
 					log.Error(err)
 				}
 
-				txRaw, err := s.BTCClient.GetRawTransactionVerbose(hash)
+				txRaw, err := s.BTCClient.GetRawTransactionVerbose(txID)
 				if err != nil {
 					log.Error(err)
 				}
@@ -255,11 +240,15 @@ func (s *Scanner) ScanTxs() {
 					log.Error(err)
 				}
 
-				if tx.Hash == txMsg.LastTxHash {
-					if err := txMsg.BlockRaw.Complete(); err != nil {
+				if tx.TxID == txMsg.LastTxID {
+					blockRaw, err := models.GetBlockRawByID(txMsg.BlockRaw.ID.Hex())
+					if err != nil {
 						log.Error(err)
 					}
-					if err := txMsg.BlockRaw.Update(); err != nil {
+					if err := blockRaw.Complete(); err != nil {
+						log.Error(err)
+					}
+					if err := blockRaw.Update(); err != nil {
 						log.Error(err)
 					}
 				}

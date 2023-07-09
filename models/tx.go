@@ -11,7 +11,7 @@ import (
 type TxRaw struct {
 	ID        primitive.ObjectID   `json:"id" bson:"_id"`
 	BlockID   primitive.ObjectID   `json:"block_id" bson:"block_id"`
-	Hash      string               `json:"hash" bson:"hash"`
+	TxID      string               `json:"tx_id" bson:"tx_id"`
 	Height    int64                `json:"height" bson:"height"`
 	CreatedAt time.Time            `json:"created_at" bson:"created_at"`
 	UpdatedAt *time.Time           `json:"updated_at" bson:"updated_at"`
@@ -23,7 +23,7 @@ func NewTxRaw(blockID primitive.ObjectID, height int64, txRaw *btcjson.TxRawResu
 	return &TxRaw{
 		ID:        primitive.NewObjectID(),
 		BlockID:   blockID,
-		Hash:      txRaw.Hash,
+		TxID:      txRaw.Txid,
 		Height:    height,
 		CreatedAt: time.Now().UTC(),
 		TxRaw:     txRaw,
