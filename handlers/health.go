@@ -12,8 +12,11 @@ func HealthHandler(c echo.Context) error {
 	health.Service = config.SERVICE_NAME
 	health.Status = http.StatusOK
 	health.Version = config.VERSION
-	state := models.NewState("")
+
+	// TODO: path react to env
+	state := models.NewState("/state")
 	if err := state.Read(); err != nil {
+		c.Logger().Error(err)
 	}
 
 	health.State = state
