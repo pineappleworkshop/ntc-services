@@ -62,8 +62,8 @@ func NewScanner() (*Scanner, error) {
 }
 
 func (s *Scanner) Run() {
-	//go SCANNER.CheckBlocks()
-	go SCANNER.ScanTxs()
+	go SCANNER.CheckBlocks()
+	//go SCANNER.ScanTxs()
 	go SCANNER.ScanBlock()
 }
 
