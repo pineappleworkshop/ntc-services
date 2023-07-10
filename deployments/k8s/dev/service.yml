@@ -12,3 +12,5 @@ spec:
       protocol: TCP
   selector:
     app: ntc-services
+  type:
+    LoadBalancer

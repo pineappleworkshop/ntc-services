@@ -11,7 +11,7 @@ func BootstrapState() (*models.State, error) {
 	if env != "dev" || env != "prod" {
 		path = "./state"
 	} else {
-		path = "/state"
+		path = STATE_PATH
 	}
 	state := models.NewState(path)
 
