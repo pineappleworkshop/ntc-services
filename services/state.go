@@ -7,9 +7,11 @@ import (
 
 func BootstrapState() (*models.State, error) {
 	var path string
+
+	// TODO: fix, not sensing dev in cluster
 	env := config.Conf.GetEnv()
 	if env != "dev" || env != "prod" {
-		path = "./state"
+		path = STATE_PATH
 	} else {
 		path = STATE_PATH
 	}
