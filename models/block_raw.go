@@ -89,6 +89,19 @@ func GetBlockRawCompleted(idStr string) (bool, error) {
 	return br.Completed, nil
 }
 
+func GetBlockStarted(height int64) (bool, error) {
+	filter := bson.M{"height": height}
+	collection := stores.DB.Mongo.Client.Database(stores.DB_NAME).Collection(stores.DB_COLLECTION_BLOCKS_RAW)
+
+	var br *BlockRaw
+	// TODO: hacky logic/err handling
+	if err := collection.FindOne(context.TODO(), filter).Decode(&br); err != nil {
+		return false, nil
+	}
+
+	return true, nil
+}
+
 func GetLatestBlock() (*BlockRaw, error) {
 	collection := stores.DB.Mongo.Client.Database(stores.DB_NAME).Collection(stores.DB_COLLECTION_BLOCKS_RAW)
 	opts := options.FindOne().SetSort(bson.D{{"height", -1}})

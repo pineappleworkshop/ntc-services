@@ -39,6 +39,20 @@ func (tr *TxRaw) Save() error {
 	return nil
 }
 
+func SaveRawTxs(txRaws []*TxRaw) error {
+	documents := make([]interface{}, len(txRaws))
+	for i, txRaw := range txRaws {
+		documents[i] = txRaw
+	}
+
+	collection := stores.DB.Mongo.Client.Database(stores.DB_NAME).Collection(stores.DB_COLLECTION_TXS_RAW)
+	if _, err := collection.InsertMany(context.Background(), documents); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // TODO: Save but check to prexisiting record
 //
 //

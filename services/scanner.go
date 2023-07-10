@@ -73,22 +73,26 @@ func (s *Scanner) CheckBlocks() {
 	if err != nil {
 		log.Error(err)
 	}
+
+	// TODO: fix this hack of forcing some concurrency
 	scramble(uncompletedBlockRaws)
 
 	for _, br := range uncompletedBlockRaws {
-		completed, err := models.GetBlockRawCompleted(br.ID.Hex())
-		if err != nil {
+		if time.Now().UTC().Sub(br.CreatedAt) > 10*time.Minute {
+			completed, err := models.GetBlockRawCompleted(br.ID.Hex())
+			if err != nil {
 
-		}
-		if !completed {
-			for txHeight, tx := range br.Block.Tx {
-				txMsg := TxMsg{
-					TxID:       tx,
-					BlockRawID: br.ID,
-					Height:     int64(txHeight),
-					LastTxID:   br.Block.Tx[len(br.Block.Tx)-1],
+			}
+			if !completed {
+				for txHeight, tx := range br.Block.Tx {
+					txMsg := TxMsg{
+						TxID:       tx,
+						BlockRawID: br.ID,
+						Height:     int64(txHeight),
+						LastTxID:   br.Block.Tx[len(br.Block.Tx)-1],
+					}
+					s.Txs <- txMsg
 				}
-				s.Txs <- txMsg
 			}
 		}
 	}
@@ -105,7 +109,7 @@ func (s *Scanner) GetHeight() (int64, error) {
 
 func (s *Scanner) ScanBlock() {
 LOOP:
-	time.Sleep(time.Second * 5)
+	//time.Sleep(time.Second * 5)
 
 	if s.CheckingBlocks {
 		goto LOOP
@@ -115,10 +119,14 @@ LOOP:
 		goto LOOP
 	}
 
+	log.Infof("State: %+v", STATE)
+
+	height := STATE.ScannerBlockHeight
 	STATE.ScannerBlockHeight = STATE.ScannerBlockHeight + 1
 	if err := STATE.Write(); err != nil {
 		log.Error(err)
 	}
+	log.Infof("State: %+v", STATE)
 
 	blockCount, err := s.BTCClient.GetBlockCount()
 	if err != nil {
@@ -129,52 +137,94 @@ LOOP:
 		goto LOOP
 	}
 
-	for height := STATE.ScannerBlockHeight; height < blockCount; height++ {
-		blockHash, err := s.BTCClient.GetBlockHash(height)
-		if err != nil {
-			log.Error(err)
-		}
-
-		blockVerbose, err := s.BTCClient.GetBlockVerbose(blockHash)
-		if err != nil {
-			log.Error(err)
-		}
-
-		log.Infof("Block Height: %+v", blockVerbose.Height)
-
-		blockRaw := models.NewBlockRaw(blockVerbose)
-		if err := blockRaw.Save(); err != nil {
-			log.Error(err)
-		}
-
-		//go func() {
-		//	for txHeight, tx := range blockVerbose.Tx {
-		//		txMsg := TxMsg{
-		//			TxID:       tx,
-		//			BlockRawID: blockRaw.ID,
-		//			Height:     int64(txHeight),
-		//			LastTxID:   blockRaw.Block.Tx[len(blockRaw.Block.Tx)-1],
-		//		}
-		//		s.Txs <- txMsg
-		//	}
-		//}()
-		//time.Sleep(time.Second * 30)
-		for txHeight, tx := range blockVerbose.Tx {
-			txMsg := TxMsg{
-				TxID:       tx,
-				BlockRawID: blockRaw.ID,
-				Height:     int64(txHeight),
-				LastTxID:   blockRaw.Block.Tx[len(blockRaw.Block.Tx)-1],
-			}
-			s.Txs <- txMsg
-		}
+NEXT_BLOCK:
+	started, err := models.GetBlockStarted(height)
+	if started {
+		log.Infof("Next Block: %+v", height+1)
+		height = height + 1
+		goto NEXT_BLOCK
 	}
+
+	blockHash, err := s.BTCClient.GetBlockHash(height)
+	if err != nil {
+		log.Error(err)
+	}
+
+	blockVerbose, err := s.BTCClient.GetBlockVerbose(blockHash)
+	if err != nil {
+		log.Error(err)
+	}
+
+	log.Infof("Block Height: %+v", blockVerbose.Height)
+
+	blockRaw := models.NewBlockRaw(blockVerbose)
+	if err := blockRaw.Save(); err != nil {
+		log.Error(err)
+		height = height + 1
+		goto NEXT_BLOCK
+	}
+
+	for txHeight, tx := range blockVerbose.Tx {
+		txMsg := TxMsg{
+			TxID:       tx,
+			BlockRawID: blockRaw.ID,
+			Height:     int64(txHeight),
+			LastTxID:   blockRaw.Block.Tx[len(blockRaw.Block.Tx)-1],
+		}
+		s.Txs <- txMsg
+	}
+
+	s.BTCClient.GetBalances()
+
+	//for height := STATE.ScannerBlockHeight; height < blockCount; height++ {
+	//	blockHash, err := s.BTCClient.GetBlockHash(height)
+	//	if err != nil {
+	//		log.Error(err)
+	//	}
+	//
+	//	blockVerbose, err := s.BTCClient.GetBlockVerbose(blockHash)
+	//	if err != nil {
+	//		log.Error(err)
+	//	}
+	//
+	//	log.Infof("Block Height: %+v", blockVerbose.Height)
+	//
+	//	blockRaw := models.NewBlockRaw(blockVerbose)
+	//	if err := blockRaw.Save(); err != nil {
+	//		log.Error(err)
+	//	}
+	//
+	//	for txHeight, tx := range blockVerbose.Tx {
+	//		txMsg := TxMsg{
+	//			TxID:       tx,
+	//			BlockRawID: blockRaw.ID,
+	//			Height:     int64(txHeight),
+	//			LastTxID:   blockRaw.Block.Tx[len(blockRaw.Block.Tx)-1],
+	//		}
+	//		s.Txs <- txMsg
+	//	}
+	//
+	//	//go func() {
+	//	//	for txHeight, tx := range blockVerbose.Tx {
+	//	//		txMsg := TxMsg{
+	//	//			TxID:       tx,
+	//	//			BlockRawID: blockRaw.ID,
+	//	//			Height:     int64(txHeight),
+	//	//			LastTxID:   blockRaw.Block.Tx[len(blockRaw.Block.Tx)-1],
+	//	//		}
+	//	//		s.Txs <- txMsg
+	//	//	}
+	//	//}()
+	//	//time.Sleep(time.Second * 30)
+	//}
 	goto LOOP
 }
 
 func (s *Scanner) ScanTxs() {
 	semaphore := NewSemaphore(12)
 	for {
+		var txRaws []*models.TxRaw
+
 		select {
 		case txMsg := <-s.Txs:
 			semaphore.Acquire()
@@ -191,6 +241,7 @@ func (s *Scanner) ScanTxs() {
 				}
 
 				tx := models.NewTxRaw(txMsg.BlockRawID, txMsg.Height, txRaw)
+				txRaws = append(txRaws, tx)
 				if err := tx.Save(); err != nil {
 					log.Error(err)
 				}
@@ -211,7 +262,7 @@ func (s *Scanner) ScanTxs() {
 					}
 				}
 
-				log.Infof("Store TxRaw: %+v", tx)
+				//log.Infof("Store TxRaw: %+v", tx)
 			}()
 		}
 	}
