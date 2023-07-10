@@ -147,18 +147,27 @@ LOOP:
 			log.Error(err)
 		}
 
-		go func() {
-			for txHeight, tx := range blockVerbose.Tx {
-				txMsg := TxMsg{
-					TxID:       tx,
-					BlockRawID: blockRaw.ID,
-					Height:     int64(txHeight),
-					LastTxID:   blockRaw.Block.Tx[len(blockRaw.Block.Tx)-1],
-				}
-				s.Txs <- txMsg
+		//go func() {
+		//	for txHeight, tx := range blockVerbose.Tx {
+		//		txMsg := TxMsg{
+		//			TxID:       tx,
+		//			BlockRawID: blockRaw.ID,
+		//			Height:     int64(txHeight),
+		//			LastTxID:   blockRaw.Block.Tx[len(blockRaw.Block.Tx)-1],
+		//		}
+		//		s.Txs <- txMsg
+		//	}
+		//}()
+		//time.Sleep(time.Second * 30)
+		for txHeight, tx := range blockVerbose.Tx {
+			txMsg := TxMsg{
+				TxID:       tx,
+				BlockRawID: blockRaw.ID,
+				Height:     int64(txHeight),
+				LastTxID:   blockRaw.Block.Tx[len(blockRaw.Block.Tx)-1],
 			}
-		}()
-		time.Sleep(time.Second * 30)
+			s.Txs <- txMsg
+		}
 	}
 	goto LOOP
 }
