@@ -7,6 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"ntc-services/config"
 	"ntc-services/models"
+	"ntc-services/stores"
 	"sync"
 	"time"
 )
@@ -247,6 +248,9 @@ func (s *Scanner) ScanTxs() {
 					blockRaw, err := models.GetBlockRawByID(txMsg.BlockRawID.Hex())
 					if err != nil {
 						log.Error(err)
+						if err.Error() == stores.MONGO_ERR_NOT_FOUND {
+							return
+						}
 					}
 					if err := blockRaw.Complete(); err != nil {
 						log.Error(err)
