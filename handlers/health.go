@@ -12,6 +12,11 @@ func HealthHandler(c echo.Context) error {
 	health.Service = config.SERVICE_NAME
 	health.Status = http.StatusOK
 	health.Version = config.VERSION
+	state := models.NewState("")
+	if err := state.Read(); err != nil {
+	}
+
+	health.State = state
 
 	return c.JSON(http.StatusOK, health)
 }

@@ -1,0 +1,30 @@
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: state-sync
+spec:
+  replicas: 3
+  serviceName: "state-sync"
+  selector:
+    matchLabels:
+      app: state-sync
+  template:
+    metadata:
+      labels:
+        app: state-sync
+    spec:
+      containers:
+        - name: state-sync
+          image: your-go-app-image:latest
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          volumeMounts:
+            - name: sync-volume
+              mountPath: /sync
+      volumes:
+        - name: sync-volume
+          emptyDir: {}

@@ -73,6 +73,22 @@ func GetBlockRawByID(idStr string) (*BlockRaw, error) {
 	return br, nil
 }
 
+func GetBlockRawCompleted(idStr string) (bool, error) {
+	id, err := primitive.ObjectIDFromHex(idStr)
+	if err != nil {
+		return false, err
+	}
+	filter := bson.M{"_id": id}
+	collection := stores.DB.Mongo.Client.Database(stores.DB_NAME).Collection(stores.DB_COLLECTION_BLOCKS_RAW)
+
+	var br *BlockRaw
+	if err := collection.FindOne(context.TODO(), filter).Decode(&br); err != nil {
+		return false, err
+	}
+
+	return br.Completed, nil
+}
+
 func GetLatestBlock() (*BlockRaw, error) {
 	collection := stores.DB.Mongo.Client.Database(stores.DB_NAME).Collection(stores.DB_COLLECTION_BLOCKS_RAW)
 	opts := options.FindOne().SetSort(bson.D{{"height", -1}})
