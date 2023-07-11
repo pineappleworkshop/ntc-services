@@ -125,7 +125,7 @@ func (m *Mongo) CreateIndexes() error {
 		return err
 	}
 
-	if _, err := m.Client.Database(DB_NAME).Collection(DB_COLLECTION_BLOCKS_RAW).Indexes().CreateOne(
+	if _, err := m.Client.Database(DB_NAME).Collection(DB_COLLECTION_TXS_RAW).Indexes().CreateOne(
 		context.Background(),
 		mongo.IndexModel{
 			Keys:    bson.M{"block_id": 1}, // 1 for ascending order, -1 for descending order
