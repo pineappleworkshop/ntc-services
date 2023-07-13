@@ -16,7 +16,7 @@ kind: StatefulSet
 metadata:
   name: ntc-services
 spec:
-  replicas: 18
+  replicas: 9
   serviceName: "ntc-services"
   selector:
     matchLabels:
@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
         - name: ntc-services
-          image: gcr.io/pineappleworkshop/ntc-services:0.0.38
+          image: gcr.io/pineappleworkshop/ntc-services:0.0.39
           env:
             - name: ENV
               value: 'dev'

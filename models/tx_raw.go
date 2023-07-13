@@ -3,6 +3,7 @@ package models
 import (
 	"context"
 	"github.com/btcsuite/btcd/btcjson"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"ntc-services/stores"
 	"time"
@@ -11,7 +12,7 @@ import (
 type TxRaw struct {
 	ID        primitive.ObjectID   `json:"id" bson:"_id"`
 	BlockID   primitive.ObjectID   `json:"block_id" bson:"block_id"`
-	TxID      string               `json:"tx_id" bson:"tx_id"`
+	TxID      string               `json:"tx_id" bson:"tx_id"` // TODO: change to txid, audit data
 	Height    int64                `json:"height" bson:"height"`
 	CreatedAt time.Time            `json:"created_at" bson:"created_at"`
 	UpdatedAt *time.Time           `json:"updated_at" bson:"updated_at"`
@@ -51,6 +52,26 @@ func SaveRawTxs(txRaws []*TxRaw) error {
 	}
 
 	return nil
+}
+func GetTxRawsByBlockID(idStr string) ([]*TxRaw, error) {
+	id, err := primitive.ObjectIDFromHex(idStr)
+	if err != nil {
+		return nil, err
+	}
+	filter := bson.M{"block_id": id}
+	collection := stores.DB.Mongo.Client.Database(stores.DB_NAME).Collection(stores.DB_COLLECTION_TXS_RAW)
+
+	cursor, err := collection.Find(context.TODO(), filter)
+	if err != nil {
+		return nil, err
+	}
+
+	var blockRaws []*TxRaw
+	if err := cursor.All(context.TODO(), &blockRaws); err != nil {
+		return nil, err
+	}
+
+	return blockRaws, nil
 }
 
 // TODO: Save but check to prexisiting record

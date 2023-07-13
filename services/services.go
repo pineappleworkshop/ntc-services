@@ -1,9 +1,12 @@
 package services
 
-import "ntc-services/models"
+import (
+	"ntc-services/models"
+)
 
 var STATE *models.State
 var SCANNER *Scanner
+var PARSER *Parser
 
 func StartServices() (err error) {
 	STATE, err = BootstrapState()
@@ -16,6 +19,15 @@ func StartServices() (err error) {
 		return err
 	}
 	SCANNER.Run()
+
+	//PARSER, err := NewParser()
+	//if err != nil {
+	//	return err
+	//}
+	//PARSER.Run()
+
+	//TxWatcher, err := NewTxWatcher()
+	//go TxWatcher.Run()
 
 	return nil
 }

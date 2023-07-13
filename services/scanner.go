@@ -99,53 +99,35 @@ func (s *Scanner) CheckBlocks() {
 	s.CheckingBlocks = false
 }
 
-func (s *Scanner) GetHeight() (int64, error) {
-	if err := STATE.Read(); err != nil {
-		return -1, err
-	}
-
-	return STATE.ScannerBlockHeight, nil
-}
-
 func (s *Scanner) ScanBlock() {
 LOOP:
-	//time.Sleep(time.Second * 5)
-
 	if s.CheckingBlocks {
 		goto LOOP
 	}
-	if err := STATE.Read(); err != nil {
-		log.Error(err)
-		goto LOOP
-	}
+
+	STATE, _ = models.GetState()
 
 	log.Infof("State: %+v", STATE)
-
-	height := STATE.ScannerBlockHeight
-	STATE.ScannerBlockHeight = STATE.ScannerBlockHeight + 1
-	if err := STATE.Write(); err != nil {
-		log.Error(err)
-	}
-	log.Infof("State: %+v", STATE)
-
 	blockCount, err := s.BTCClient.GetBlockCount()
 	if err != nil {
 		log.Error(err)
 	}
-
 	if STATE.ScannerBlockHeight == blockCount {
 		goto LOOP
 	}
 
-NEXT_BLOCK:
-	started, err := models.GetBlockStarted(height)
+	//NEXT_BLOCK:
+	started, err := models.GetBlockStarted(STATE.ScannerBlockHeight)
 	if started {
-		log.Infof("Next Block: %+v", height+1)
-		height = height + 1
-		goto NEXT_BLOCK
+		log.Infof("Next Block: %+v", STATE.ScannerBlockHeight)
+		STATE.ScannerBlockHeight = STATE.ScannerBlockHeight + 1
+		if err := STATE.Update(); err != nil {
+			log.Error(err)
+		}
+		goto LOOP
 	}
 
-	blockHash, err := s.BTCClient.GetBlockHash(height)
+	blockHash, err := s.BTCClient.GetBlockHash(STATE.ScannerBlockHeight)
 	if err != nil {
 		log.Error(err)
 	}
@@ -159,9 +141,16 @@ NEXT_BLOCK:
 
 	blockRaw := models.NewBlockRaw(blockVerbose)
 	if err := blockRaw.Save(); err != nil {
+		STATE.ScannerBlockHeight = STATE.ScannerBlockHeight + 1
+		if err := STATE.Update(); err != nil {
+			log.Error(err)
+		}
+		goto LOOP
+	}
+
+	STATE.ScannerBlockHeight = STATE.ScannerBlockHeight + 1
+	if err := STATE.Update(); err != nil {
 		log.Error(err)
-		height = height + 1
-		goto NEXT_BLOCK
 	}
 
 	for txHeight, tx := range blockVerbose.Tx {
@@ -262,7 +251,7 @@ func (s *Scanner) ScanTxs() {
 					}
 				}
 
-				//log.Infof("Store TxRaw: %+v", tx)
+				log.Infof("Store TxRaw: %+v", tx)
 			}()
 		}
 	}

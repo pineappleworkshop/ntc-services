@@ -73,6 +73,18 @@ func GetBlockRawByID(idStr string) (*BlockRaw, error) {
 	return br, nil
 }
 
+func GetBlockRawByHeight(height int64) (*BlockRaw, error) {
+	filter := bson.M{"height": height}
+	collection := stores.DB.Mongo.Client.Database(stores.DB_NAME).Collection(stores.DB_COLLECTION_BLOCKS_RAW)
+
+	var br *BlockRaw
+	if err := collection.FindOne(context.TODO(), filter).Decode(&br); err != nil {
+		return nil, err
+	}
+
+	return br, nil
+}
+
 func GetBlockRawCompleted(idStr string) (bool, error) {
 	id, err := primitive.ObjectIDFromHex(idStr)
 	if err != nil {
@@ -94,9 +106,10 @@ func GetBlockStarted(height int64) (bool, error) {
 	collection := stores.DB.Mongo.Client.Database(stores.DB_NAME).Collection(stores.DB_COLLECTION_BLOCKS_RAW)
 
 	var br *BlockRaw
-	// TODO: hacky logic/err handling
 	if err := collection.FindOne(context.TODO(), filter).Decode(&br); err != nil {
-		return false, nil
+		if err.Error() == stores.MONGO_ERR_NOT_FOUND {
+			return false, nil
+		}
 	}
 
 	return true, nil

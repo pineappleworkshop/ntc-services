@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"ntc-services/config"
 	"ntc-services/models"
-	"ntc-services/services"
 )
 
 func HealthHandler(c echo.Context) error {
@@ -15,8 +14,8 @@ func HealthHandler(c echo.Context) error {
 	health.Version = config.VERSION
 
 	// TODO: path react to env
-	state := models.NewState(services.STATE_PATH)
-	if err := state.Read(); err != nil {
+	state, err := models.GetState()
+	if err != nil {
 		c.Logger().Error(err)
 	}
 
