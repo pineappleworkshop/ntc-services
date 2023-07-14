@@ -162,50 +162,8 @@ LOOP:
 		}
 		s.Txs <- txMsg
 	}
-
 	s.BTCClient.GetBalances()
 
-	//for height := STATE.ScannerBlockHeight; height < blockCount; height++ {
-	//	blockHash, err := s.BTCClient.GetBlockHash(height)
-	//	if err != nil {
-	//		log.Error(err)
-	//	}
-	//
-	//	blockVerbose, err := s.BTCClient.GetBlockVerbose(blockHash)
-	//	if err != nil {
-	//		log.Error(err)
-	//	}
-	//
-	//	log.Infof("Block Height: %+v", blockVerbose.Height)
-	//
-	//	blockRaw := models.NewBlockRaw(blockVerbose)
-	//	if err := blockRaw.Save(); err != nil {
-	//		log.Error(err)
-	//	}
-	//
-	//	for txHeight, tx := range blockVerbose.Tx {
-	//		txMsg := TxMsg{
-	//			TxID:       tx,
-	//			BlockRawID: blockRaw.ID,
-	//			Height:     int64(txHeight),
-	//			LastTxID:   blockRaw.Block.Tx[len(blockRaw.Block.Tx)-1],
-	//		}
-	//		s.Txs <- txMsg
-	//	}
-	//
-	//	//go func() {
-	//	//	for txHeight, tx := range blockVerbose.Tx {
-	//	//		txMsg := TxMsg{
-	//	//			TxID:       tx,
-	//	//			BlockRawID: blockRaw.ID,
-	//	//			Height:     int64(txHeight),
-	//	//			LastTxID:   blockRaw.Block.Tx[len(blockRaw.Block.Tx)-1],
-	//	//		}
-	//	//		s.Txs <- txMsg
-	//	//	}
-	//	//}()
-	//	//time.Sleep(time.Second * 30)
-	//}
 	goto LOOP
 }
 

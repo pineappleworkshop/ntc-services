@@ -1,16 +1,13 @@
 package services
 
 import (
-	"github.com/btcsuite/btcd/rpcclient"
 	log "github.com/sirupsen/logrus"
-	"ntc-services/config"
 	"ntc-services/models"
 	"time"
 )
 
 type Parser struct {
-	BTCClient *rpcclient.Client
-	TxRawC    chan ParserTxMsg
+	TxRawC chan ParserTxMsg
 }
 
 type ParserTxMsg struct {
@@ -19,37 +16,8 @@ type ParserTxMsg struct {
 }
 
 func NewParser() (*Parser, error) {
-	host, err := config.GetBTCRPCHost()
-	if err != nil {
-		return nil, err
-	}
-	user, err := config.GetBTCRPCUser()
-	if err != nil {
-		return nil, err
-	}
-	password, err := config.GetBTCRPCPassword()
-	if err != nil {
-		return nil, err
-	}
-
-	// Connect to local bitcoin core RPC server using HTTP POST mode.
-	connCfg := &rpcclient.ConnConfig{
-		Host:         *host,
-		User:         *user,
-		Pass:         *password,
-		HTTPPostMode: true, // Bitcoin core only supports HTTP POST mode
-		DisableTLS:   true, // Bitcoin core does not provide TLS by default
-	}
-
-	client, err := rpcclient.New(connCfg, nil)
-	if err != nil {
-		log.Error(err)
-		return nil, err
-	}
-
 	return &Parser{
-		BTCClient: client,
-		TxRawC:    make(chan ParserTxMsg),
+		TxRawC: make(chan ParserTxMsg),
 	}, nil
 }
 
@@ -93,6 +61,7 @@ LOOP:
 	STATE.ParserBlockHeight = STATE.ParserBlockHeight + 1
 	if err := STATE.Update(); err != nil {
 		log.Error(err)
+		goto LOOP
 	}
 
 	for _, txRaw := range txRaws {
@@ -107,7 +76,7 @@ LOOP:
 }
 
 func (p *Parser) Parse() {
-	semaphore := NewSemaphore(12)
+	semaphore := NewSemaphore(100)
 	for {
 		select {
 		case parserTxMsg := <-p.TxRawC:

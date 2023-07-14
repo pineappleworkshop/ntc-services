@@ -29,5 +29,7 @@ func StartServices() (err error) {
 	//TxWatcher, err := NewTxWatcher()
 	//go TxWatcher.Run()
 
+	//Inscribe()
+
 	return nil
 }
