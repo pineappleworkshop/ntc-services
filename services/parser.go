@@ -115,7 +115,11 @@ func (p *Parser) Parse() {
 			go func() {
 				defer semaphore.Release()
 
-				log.Infof("Parsing RawTx.ID: %+v", parserTxMsg.TxRaw.ID.Hex())
+				log.Infof(
+					"Parsing RawTx.ID: %+v w/ BlockHeigh %+v",
+					parserTxMsg.TxRaw.ID.Hex(),
+					parserTxMsg.BlockHeight,
+				)
 
 				tx := models.NewTx(parserTxMsg.TxRaw.BlockID, parserTxMsg.TxRaw.ID)
 				if err := tx.Parse(parserTxMsg.BlockHeight, &parserTxMsg.TxRaw); err != nil {

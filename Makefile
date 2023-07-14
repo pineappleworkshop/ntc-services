@@ -1,6 +1,6 @@
 service := ntc-services
 port := 3444
-version := 0.0.43
+version := 0.0.44
 docker-org := pineappleworkshop
 docker-registry := gcr.io
 docker-image := pineappleworkshop/${service}:${version}
