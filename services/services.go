@@ -14,17 +14,17 @@ func StartServices() (err error) {
 		panic(err)
 	}
 
-	SCANNER, err = NewScanner()
-	if err != nil {
-		return err
-	}
-	SCANNER.Run()
-
-	//PARSER, err := NewParser()
+	//SCANNER, err = NewScanner()
 	//if err != nil {
 	//	return err
 	//}
-	//PARSER.Run()
+	//SCANNER.Run()
+
+	PARSER, err := NewParser()
+	if err != nil {
+		return err
+	}
+	PARSER.Run()
 
 	//TxWatcher, err := NewTxWatcher()
 	//go TxWatcher.Run()

@@ -10,4 +10,7 @@ const (
 	DB_COLLECTION_TXS_RAW    = "txs_raw"
 	DB_COLLECTION_TRADES     = "trades"
 	DB_COLLECTION_STATE      = "state"
+	DB_COLLECTION_TXS        = "txs"
+	DB_COLLECTION_VINS       = "vins"
+	DB_COLLECTION_VOUTS      = "vouts"
 )

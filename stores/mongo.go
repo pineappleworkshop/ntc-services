@@ -115,6 +115,16 @@ func (m *Mongo) CreateIndexes() error {
 		return err
 	}
 
+	if _, err := m.Client.Database(DB_NAME).Collection(DB_COLLECTION_TXS).Indexes().CreateOne(
+		context.Background(),
+		mongo.IndexModel{
+			Keys:    bson.D{{Key: "txid", Value: 1}},
+			Options: options.Index().SetUnique(true),
+		},
+	); err != nil {
+		return err
+	}
+
 	if _, err := m.Client.Database(DB_NAME).Collection(DB_COLLECTION_BLOCKS_RAW).Indexes().CreateOne(
 		context.Background(),
 		mongo.IndexModel{
@@ -134,6 +144,36 @@ func (m *Mongo) CreateIndexes() error {
 	//); err != nil {
 	//	return err
 	//}
+
+	if _, err := m.Client.Database(DB_NAME).Collection(DB_COLLECTION_TXS).Indexes().CreateOne(
+		context.Background(),
+		mongo.IndexModel{
+			Keys:    bson.M{"height": 1}, // 1 for ascending order, -1 for descending order
+			Options: options.Index().SetName("block_raw_id").SetBackground(true),
+		},
+	); err != nil {
+		return err
+	}
+
+	if _, err := m.Client.Database(DB_NAME).Collection(DB_COLLECTION_VINS).Indexes().CreateOne(
+		context.Background(),
+		mongo.IndexModel{
+			Keys:    bson.M{"height": 1}, // 1 for ascending order, -1 for descending order
+			Options: options.Index().SetName("tx_id").SetBackground(true),
+		},
+	); err != nil {
+		return err
+	}
+
+	if _, err := m.Client.Database(DB_NAME).Collection(DB_COLLECTION_VOUTS).Indexes().CreateOne(
+		context.Background(),
+		mongo.IndexModel{
+			Keys:    bson.M{"height": 1}, // 1 for ascending order, -1 for descending order
+			Options: options.Index().SetName("tx_id").SetBackground(true),
+		},
+	); err != nil {
+		return err
+	}
 
 	return nil
 }
