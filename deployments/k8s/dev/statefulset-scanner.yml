@@ -16,7 +16,7 @@ kind: StatefulSet
 metadata:
   name: ntc-scanner
 spec:
-  replicas: 18
+  replicas: 9
   serviceName: "ntc-scanner"
   selector:
     matchLabels:

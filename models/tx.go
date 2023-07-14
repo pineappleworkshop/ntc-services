@@ -78,7 +78,7 @@ type Vin struct {
 	Coinbase   string             `json:"coinbase" bson:"coinbase"`
 	Txid       string             `json:"txid" bson:"txid"`
 	Vout       uint32             `json:"vout" bson:"vout"`
-	ScriptSig  ScriptSig          `json:"script_sig" bson:"script_sig"`
+	ScriptSig  *ScriptSig         `json:"script_sig" bson:"script_sig"`
 	Sequence   uint32             `json:"sequence" bson:"sequence"`
 	Witness    []string           `json:"txinwitness" bson:"txinwitness"`
 	CreatedAt  time.Time          `json:"created_at" bson:"created_at"`
@@ -103,7 +103,7 @@ func (v *Vin) Parse(index int64, vin btcjson.Vin) error {
 	v.Sequence = vin.Sequence
 	v.Witness = vin.Witness
 	if vin.ScriptSig != nil {
-		v.ScriptSig = ScriptSig{
+		v.ScriptSig = &ScriptSig{
 			Asm: vin.ScriptSig.Asm,
 			Hex: vin.ScriptSig.Hex,
 		}
