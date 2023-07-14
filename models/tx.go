@@ -13,19 +13,19 @@ type Tx struct {
 	BlockRawID    primitive.ObjectID `json:"block_raw_id" bson:"block_raw_id"`
 	TxRawID       primitive.ObjectID `json:"tx_raw_id" bson:"tx_raw_id"`
 	BlockHeight   int64              `json:"block_height" bson:"block_height"`
-	Height        int64              `json:"height" bson:"height`
-	Hex           string             `json:"hex"`
-	Txid          string             `json:"txid"`
-	Hash          string             `json:"hash"`
-	Size          int32              `json:"size"`
-	Vsize         int32              `json:"vsize"`
-	Weight        int32              `json:"weight"`
-	Version       uint32             `json:"version"`
-	LockTime      uint32             `json:"locktime"`
-	BlockHash     string             `json:"blockhash"`
-	Confirmations uint64             `json:"confirmations"`
-	Time          int64              `json:"time"`
-	Blocktime     int64              `json:"blocktime"`
+	Height        int64              `json:"height" bson:"height"`
+	Hex           string             `json:"hex" bson:"hex"`
+	Txid          string             `json:"txid" bson:"txid"`
+	Hash          string             `json:"hash" bson:"hash"`
+	Size          int32              `json:"size" bson:"size"`
+	Vsize         int32              `json:"vsize" bson:"vsize"`
+	Weight        int32              `json:"weight" bson:"weight"`
+	Version       uint32             `json:"version" bson:"version"`
+	LockTime      uint32             `json:"locktime" bson:"locktime"`
+	BlockHash     string             `json:"blockhash" bson:"blockhash"`
+	Confirmations uint64             `json:"confirmations" bson:"confirmations"`
+	Time          int64              `json:"time" bson:"time"`
+	Blocktime     int64              `json:"blocktime" bson:"blocktime"`
 	CreatedAt     time.Time          `json:"created_at" bson:"created_at"`
 	UpdatedAt     *time.Time         `json:"updated_at" bson:"updated_at"`
 	//Vin           []Vin  `json:"vin"`
@@ -102,9 +102,11 @@ func (v *Vin) Parse(index int64, vin btcjson.Vin) error {
 	v.Vout = vin.Vout
 	v.Sequence = vin.Sequence
 	v.Witness = vin.Witness
-	v.ScriptSig = ScriptSig{
-		Asm: vin.ScriptSig.Asm,
-		Hex: vin.ScriptSig.Hex,
+	if vin.ScriptSig != nil {
+		v.ScriptSig = ScriptSig{
+			Asm: vin.ScriptSig.Asm,
+			Hex: vin.ScriptSig.Hex,
+		}
 	}
 
 	return nil

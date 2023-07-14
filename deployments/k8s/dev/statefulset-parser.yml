@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: ntc-services
+  name: ntc-parser
 spec:
   selector:
-    app: ntc-services
+    app: ntc-parser
   ports:
     - protocol: TCP
       port: 3444
@@ -14,21 +14,21 @@ spec:
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: ntc-services
+  name: ntc-parser
 spec:
-  replicas: 18
-  serviceName: "ntc-services"
+  replicas: 3
+  serviceName: "ntc-parser"
   selector:
     matchLabels:
-      app: ntc-services
+      app: ntc-parser
   template:
     metadata:
       labels:
-        app: ntc-services
+        app: ntc-parser
     spec:
       containers:
-        - name: ntc-services
-          image: gcr.io/pineappleworkshop/ntc-services:0.0.40
+        - name: ntc-parser
+          image: gcr.io/pineappleworkshop/ntc-services:0.0.41
           env:
             - name: ENV
               value: 'dev'
