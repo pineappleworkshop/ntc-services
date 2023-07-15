@@ -156,7 +156,6 @@ func (p *Parser) Parse() {
 
 			if err := models.SaveTxs(txs); err != nil {
 				log.Error(err)
-				return
 			}
 		}
 	}
