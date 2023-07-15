@@ -69,6 +69,20 @@ func (t *Tx) Save() error {
 	return nil
 }
 
+func SaveTxs(txs []Tx) error {
+	documents := make([]interface{}, len(txs))
+	for i, tx := range txs {
+		documents[i] = tx
+	}
+
+	collection := stores.DB.Mongo.Client.Database(stores.DB_NAME).Collection(stores.DB_COLLECTION_TXS)
+	if _, err := collection.InsertMany(context.Background(), documents); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 type Vin struct {
 	ID         primitive.ObjectID `json:"id" bson:"_id"`
 	TxID       primitive.ObjectID `json:"tx_id" bson:"tx_id"`

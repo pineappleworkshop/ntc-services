@@ -13,7 +13,7 @@ type Parser struct {
 
 type ParserTxMsg struct {
 	BlockHeight int64
-	TxRaw       models.TxRaw
+	TxRaws      []*models.TxRaw
 }
 
 func NewParser() (*Parser, error) {
@@ -65,13 +65,19 @@ LOOP:
 		goto LOOP
 	}
 
-	for _, txRaw := range txRaws {
-		parserTxMsg := ParserTxMsg{
-			BlockHeight: blockRaw.Height,
-			TxRaw:       *txRaw,
-		}
-		p.TxRawC <- parserTxMsg
+	//for _, txRaw := range txRaws {
+	//	parserTxMsg := ParserTxMsg{
+	//		BlockHeight: blockRaw.Height,
+	//		TxRaw:       *txRaw,
+	//	}
+	//	p.TxRawC <- parserTxMsg
+	//}
+
+	parserTxMsg := ParserTxMsg{
+		BlockHeight: blockRaw.Height,
+		TxRaws:      txRaws,
 	}
+	p.TxRawC <- parserTxMsg
 
 	goto LOOP
 }
@@ -81,66 +87,77 @@ func (p *Parser) Parse() {
 	for {
 		select {
 		case parserTxMsg := <-p.TxRawC:
-			semaphore.Acquire()
-			go func() {
-				defer semaphore.Release()
+			var txs []models.Tx
+			for _, txRaw := range parserTxMsg.TxRaws {
+				semaphore.Acquire()
+				go func() {
+					log.Infof(
+						"Parsing RawTx: %+v w/ BlockHeight %+v",
+						txRaw,
+						parserTxMsg.BlockHeight,
+					)
 
-				log.Infof(
-					"Parsing RawTx.ID: %+v w/ BlockHeigh %+v",
-					parserTxMsg.TxRaw.ID.Hex(),
-					parserTxMsg.BlockHeight,
-				)
+					defer semaphore.Release()
 
-				tx := models.NewTx(parserTxMsg.TxRaw.BlockID, parserTxMsg.TxRaw.ID)
-				if err := tx.Parse(parserTxMsg.BlockHeight, &parserTxMsg.TxRaw); err != nil {
-					log.Error(err)
-					return
-				}
-				if err := tx.Save(); err != nil {
-					log.Error(err)
-					return
-				}
+					tx := models.NewTx(txRaw.BlockID, txRaw.ID)
+					if err := tx.Parse(parserTxMsg.BlockHeight, txRaw); err != nil {
+						log.Error(err)
+						return
+					}
+					txs = append(txs, *tx)
 
-				var vins []models.Vin
-				var wgVin sync.WaitGroup
-				wgVin.Add(len(parserTxMsg.TxRaw.TxRaw.Vin))
-				for i, vinRaw := range parserTxMsg.TxRaw.TxRaw.Vin {
-					go func() {
-						defer wgVin.Done()
-						vin := models.NewVin(tx.ID, parserTxMsg.TxRaw.BlockID, parserTxMsg.TxRaw.ID)
-						if err := vin.Parse(int64(i), vinRaw); err != nil {
-							log.Error(err)
-							return
-						}
-						vins = append(vins, *vin)
-					}()
-				}
-				wgVin.Wait()
-				if err := models.SaveVins(vins); err != nil {
-					log.Error(err)
-					return
-				}
+					var vins []models.Vin
+					var wgVin sync.WaitGroup
+					wgVin.Add(len(txRaw.TxRaw.Vin))
+					for i, vinRaw := range txRaw.TxRaw.Vin {
+						go func() {
+							defer wgVin.Done()
+							vin := models.NewVin(tx.ID, txRaw.BlockID, txRaw.ID)
+							if err := vin.Parse(int64(i), vinRaw); err != nil {
+								log.Error(err)
+								return
+							}
+							vins = append(vins, *vin)
+						}()
+					}
+					wgVin.Wait()
+					if err := models.SaveVins(vins); err != nil {
+						log.Error(err)
+						return
+					}
 
-				var vouts []models.Vout
-				var wgVout sync.WaitGroup
-				wgVout.Add(len(parserTxMsg.TxRaw.TxRaw.Vout))
-				for i, voutRaw := range parserTxMsg.TxRaw.TxRaw.Vout {
-					go func() {
-						defer wgVout.Done()
-						vout := models.NewVout(tx.ID, parserTxMsg.TxRaw.BlockID, parserTxMsg.TxRaw.ID)
-						if err := vout.Parse(int64(i), voutRaw); err != nil {
-							log.Error(err)
-							return
-						}
-						vouts = append(vouts, *vout)
-					}()
-				}
-				wgVout.Wait()
-				if err := models.SaveVouts(vouts); err != nil {
-					log.Error(err)
-					return
-				}
-			}()
+					var vouts []models.Vout
+					var wgVout sync.WaitGroup
+					wgVout.Add(len(txRaw.TxRaw.Vout))
+					for i, voutRaw := range txRaw.TxRaw.Vout {
+						go func() {
+							defer wgVout.Done()
+							vout := models.NewVout(tx.ID, txRaw.BlockID, txRaw.ID)
+							if err := vout.Parse(int64(i), voutRaw); err != nil {
+								log.Error(err)
+								return
+							}
+							vouts = append(vouts, *vout)
+						}()
+					}
+					wgVout.Wait()
+					if err := models.SaveVouts(vouts); err != nil {
+						log.Error(err)
+						return
+					}
+				}()
+			}
+
+			log.Infof(
+				"Parsing RawTxs: %+v w/ BlockHeight %+v",
+				parserTxMsg.TxRaws,
+				parserTxMsg.BlockHeight,
+			)
+
+			if err := models.SaveTxs(txs); err != nil {
+				log.Error(err)
+				return
+			}
 		}
 	}
 }
