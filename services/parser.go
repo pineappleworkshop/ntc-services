@@ -3,6 +3,7 @@ package services
 import (
 	log "github.com/sirupsen/logrus"
 	"ntc-services/models"
+	"sync"
 	"time"
 )
 
@@ -100,28 +101,44 @@ func (p *Parser) Parse() {
 					return
 				}
 
+				var vins []models.Vin
+				var wgVin sync.WaitGroup
+				wgVin.Add(len(parserTxMsg.TxRaw.TxRaw.Vin))
 				for i, vinRaw := range parserTxMsg.TxRaw.TxRaw.Vin {
-					vin := models.NewVin(tx.ID, parserTxMsg.TxRaw.BlockID, parserTxMsg.TxRaw.ID)
-					if err := vin.Parse(int64(i), vinRaw); err != nil {
-						log.Error(err)
-						return
-					}
-					if err := vin.Save(); err != nil {
-						log.Error(err)
-						return
-					}
+					go func() {
+						defer wgVin.Done()
+						vin := models.NewVin(tx.ID, parserTxMsg.TxRaw.BlockID, parserTxMsg.TxRaw.ID)
+						if err := vin.Parse(int64(i), vinRaw); err != nil {
+							log.Error(err)
+							return
+						}
+						vins = append(vins, *vin)
+					}()
+				}
+				wgVin.Wait()
+				if err := models.SaveVins(vins); err != nil {
+					log.Error(err)
+					return
 				}
 
+				var vouts []models.Vout
+				var wgVout sync.WaitGroup
+				wgVout.Add(len(parserTxMsg.TxRaw.TxRaw.Vout))
 				for i, voutRaw := range parserTxMsg.TxRaw.TxRaw.Vout {
-					vout := models.NewVout(tx.ID, parserTxMsg.TxRaw.BlockID, parserTxMsg.TxRaw.ID)
-					if err := vout.Parse(int64(i), voutRaw); err != nil {
-						log.Error(err)
-						return
-					}
-					if err := vout.Save(); err != nil {
-						log.Error(err)
-						return
-					}
+					go func() {
+						defer wgVout.Done()
+						vout := models.NewVout(tx.ID, parserTxMsg.TxRaw.BlockID, parserTxMsg.TxRaw.ID)
+						if err := vout.Parse(int64(i), voutRaw); err != nil {
+							log.Error(err)
+							return
+						}
+						vouts = append(vouts, *vout)
+					}()
+				}
+				wgVout.Wait()
+				if err := models.SaveVouts(vouts); err != nil {
+					log.Error(err)
+					return
 				}
 			}()
 		}

@@ -121,6 +121,20 @@ func (v *Vin) Save() error {
 	return nil
 }
 
+func SaveVins(vins []Vin) error {
+	documents := make([]interface{}, len(vins))
+	for i, vin := range vins {
+		documents[i] = vin
+	}
+
+	collection := stores.DB.Mongo.Client.Database(stores.DB_NAME).Collection(stores.DB_COLLECTION_VINS)
+	if _, err := collection.InsertMany(context.Background(), documents); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 type Vout struct {
 	ID           primitive.ObjectID `json:"id" bson:"_id"`
 	TxID         primitive.ObjectID `json:"tx_id" bson:"tx_id"`
@@ -162,6 +176,20 @@ func (v *Vout) Parse(index int64, vout btcjson.Vout) error {
 func (v *Vout) Save() error {
 	collection := stores.DB.Mongo.Client.Database(stores.DB_NAME).Collection(stores.DB_COLLECTION_VOUTS)
 	if _, err := collection.InsertOne(context.TODO(), v, nil); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func SaveVouts(vouts []Vout) error {
+	documents := make([]interface{}, len(vouts))
+	for i, vin := range vouts {
+		documents[i] = vin
+	}
+
+	collection := stores.DB.Mongo.Client.Database(stores.DB_NAME).Collection(stores.DB_COLLECTION_VOUTS)
+	if _, err := collection.InsertMany(context.Background(), documents); err != nil {
 		return err
 	}
 

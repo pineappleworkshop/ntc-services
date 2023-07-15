@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
         - name: ntc-parser
-          image: gcr.io/pineappleworkshop/ntc-services:0.0.45
+          image: gcr.io/pineappleworkshop/ntc-services:0.0.46
           env:
             - name: ENV
               value: 'dev'

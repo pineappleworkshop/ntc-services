@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/rpcclient"
 	log "github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
@@ -12,6 +13,18 @@ import (
 	"ntc-services/stores"
 	"time"
 )
+
+/*
+order statuses
+	export const PENDING = "PENDING"; 		// Not used, intention is to have a draft order state for the maker
+	export const CREATED = "CREATED"; 		// Maker has created and signed a trade (PSBT), and is ready to be reviewed,
+												rejected, or confirmed by the taker
+	export const SUBMITTED = "SUBMITTED";	// Taker has accepted, signed, and broadcasted the trade
+												(has been sent and is in the mempool)
+	export const REJECTED = "REJECTED";		// The taker rejects the trade from the maker
+	export const FAILED = "FAILED";			// The tx has left the mempool but failed to write to the blockchain
+	export const CONFIRMED = "CONFIRMED"	// The tx has left the mempool and has been successful facilitated
+*/
 
 type TxWatcher struct {
 	BTCClient *rpcclient.Client
@@ -49,6 +62,7 @@ func NewTxWatcher() (*TxWatcher, error) {
 
 	return &TxWatcher{
 		BTCClient: client,
+		Orders:    make(map[string]models.Order),
 	}, nil
 }
 
@@ -57,10 +71,12 @@ func (tw *TxWatcher) Run() {
 
 	for {
 		for txId, order := range tw.Orders {
+			fmt.Println(fmt.Sprintf("Trades: %+v", tw.Orders))
+
 			mempoolEntry, err := tw.BTCClient.GetMempoolEntry(txId)
 			if err != nil {
+				log.Error(err)
 			}
-			fmt.Println(fmt.Sprintf("Mempool: %+v", mempoolEntry))
 
 			if mempoolEntry != nil {
 				if order.Status == "SUBMITTED" {
@@ -70,13 +86,25 @@ func (tw *TxWatcher) Run() {
 					}
 				}
 			} else {
-				if order.Status != "SUBMITTED" {
-					// TODO: check to see if tx failed somehow
-					order.Status = "CONFIRMED"
-					if err := order.Update(); err != nil {
+				if order.Status == "MEMPOOL" {
+					hash, err := chainhash.NewHashFromStr(txId)
+					if err != nil {
 						log.Error(err)
 					}
-					delete(tw.Orders, txId)
+					tx, err := tw.BTCClient.GetTransaction(hash)
+					if err != nil {
+						log.Error(err)
+					}
+
+					if tx.Confirmations >= 10 {
+						order.Status = "CONFIRMED"
+						if err := order.Update(); err != nil {
+							log.Error(err)
+						}
+						delete(tw.Orders, txId)
+					} else {
+						// TODO: TX did not get written to block
+					}
 				}
 			}
 
@@ -91,24 +119,17 @@ func (tw *TxWatcher) Run() {
 	}
 }
 
-/*
-order statuses
-	export const PENDING = "PENDING"; 		// Not used, intention is to have a draft order state for the maker
-	export const CREATED = "CREATED"; 		// Maker has created and signed a trade (PSBT), and is ready to be reviewed,
-												rejected, or confirmed by the taker
-	export const SUBMITTED = "SUBMITTED";	// Taker has accepted, signed, and broadcasted the trade
-												(has been sent and is in the mempool)
-	export const REJECTED = "REJECTED";		// The taker rejects the trade from the maker
-	export const FAILED = "FAILED";			// The tx has left the mempool but failed to write to the blockchain
-	export const CONFIRMED = "CONFIRMED"	// The tx has left the mempool and has been successful facilitated
-*/
-
 func (tw *TxWatcher) Watch() {
 	log.Infof("Tx Watcher Running")
 
 	collection := stores.DB.Mongo.Client.Database(stores.DB_NAME).Collection(stores.DB_COLLECTION_TRADES)
 	pipeline := mongo.Pipeline{
-		{{"$match", bson.D{{"operationType", "insert"}}}},
+		{
+			{"$match", bson.D{
+				{"fullDocument.txId", bson.D{{"$exists", true}}},
+				{"operationType", bson.M{"$in": bson.A{"insert", "update", "replace", "upsert"}}},
+			}},
+		},
 	}
 	changeStream, err := collection.Watch(context.Background(), pipeline)
 	if err != nil {
@@ -125,6 +146,5 @@ func (tw *TxWatcher) Watch() {
 			continue
 		}
 		tw.Orders[changeDoc.FullDocument.TxID] = changeDoc.FullDocument
-		//= append(tw.Orders, &changeDoc.FullDocument)
 	}
 }
