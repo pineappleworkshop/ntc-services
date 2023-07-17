@@ -149,7 +149,7 @@ func (p *Parser) Parse() {
 			}
 
 			log.Infof(
-				"Parsing RawTxs: %+v w/ BlockHeight %+v",
+				"Parsing RawTxs: %+v w/ BlockHeight: %+v",
 				parserTxMsg.TxRaws,
 				parserTxMsg.BlockHeight,
 			)

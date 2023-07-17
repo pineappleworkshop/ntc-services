@@ -1,7 +1,7 @@
 package config
 
 const (
-	VERSION      = "0.0.48"
+	VERSION      = "0.0.49"
 	PORT         = 3444
 	SERVICE_NAME = "ntc-services"
 

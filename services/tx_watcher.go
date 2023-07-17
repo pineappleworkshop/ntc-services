@@ -1,16 +1,11 @@
 package services
 
 import (
-	"context"
-	"fmt"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/rpcclient"
 	log "github.com/sirupsen/logrus"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 	"ntc-services/config"
 	"ntc-services/models"
-	"ntc-services/stores"
 	"time"
 )
 
@@ -28,7 +23,7 @@ order statuses
 
 type TxWatcher struct {
 	BTCClient *rpcclient.Client
-	Orders    map[string]models.Order
+	Trades    map[string]*models.Trade
 }
 
 func NewTxWatcher() (*TxWatcher, error) {
@@ -62,89 +57,133 @@ func NewTxWatcher() (*TxWatcher, error) {
 
 	return &TxWatcher{
 		BTCClient: client,
-		Orders:    make(map[string]models.Order),
+		Trades:    make(map[string]*models.Trade),
 	}, nil
 }
 
 func (tw *TxWatcher) Run() {
-	go tw.Watch()
+	go tw.Poll()
 
 	for {
-		for txId, order := range tw.Orders {
-			fmt.Println(fmt.Sprintf("Trades: %+v", tw.Orders))
+		for txId, t := range tw.Trades {
+			log.Infof("Watching Trade: %+v", txId)
 
-			mempoolEntry, err := tw.BTCClient.GetMempoolEntry(txId)
+			trade, err := models.GetTradeByID(t.ID.Hex())
 			if err != nil {
 				log.Error(err)
+				continue
 			}
 
-			if mempoolEntry != nil {
-				if order.Status == "SUBMITTED" {
-					order.Status = "MEMPOOL"
-					if err := order.Update(); err != nil {
-						log.Error(err)
-					}
+			if trade.Status == "SUBMITTED" {
+				mempoolEntry, err := tw.BTCClient.GetMempoolEntry(txId)
+				if err != nil {
+					log.Error(err)
 				}
-			} else {
-				if order.Status == "MEMPOOL" {
-					hash, err := chainhash.NewHashFromStr(txId)
-					if err != nil {
+				if mempoolEntry != nil {
+					log.Infof("Trade in Mempool: %+v", txId)
+					trade.Status = "MEMPOOL"
+					if err := trade.Update(); err != nil {
 						log.Error(err)
 					}
-					tx, err := tw.BTCClient.GetTransaction(hash)
-					if err != nil {
-						log.Error(err)
-					}
+					continue
+				}
+			}
 
-					if tx.Confirmations >= 10 {
-						order.Status = "CONFIRMED"
-						if err := order.Update(); err != nil {
+			if trade.Status == "MEMPOOL" {
+				if _, err := tw.BTCClient.GetMempoolEntry(txId); err != nil {
+					if err.Error() == ERR_NOT_IN_MEMPOOL {
+						hash, err := chainhash.NewHashFromStr(txId)
+						if err != nil {
 							log.Error(err)
 						}
-						delete(tw.Orders, txId)
-					} else {
-						// TODO: TX did not get written to block
+						tx, err := tw.BTCClient.GetRawTransactionVerbose(hash)
+						if err != nil {
+							log.Error(err)
+						}
+
+						if tx != nil {
+							if tx.Confirmations >= 1 {
+								log.Infof("Trade Confirmed: %+v", txId)
+
+								trade.Status = "CONFIRMED"
+								if err := trade.Update(); err != nil {
+									log.Error(err)
+								}
+								delete(tw.Trades, txId)
+							} else {
+								log.Infof("Trade Failed: %+v", txId)
+
+								trade.Status = "FAILED"
+								if err := trade.Update(); err != nil {
+									log.Error(err)
+								}
+								delete(tw.Trades, txId)
+							}
+						} else {
+							log.Infof("Trade Failed: %+v", txId)
+
+							trade.Status = "FAILED"
+							if err := trade.Update(); err != nil {
+								log.Error(err)
+							}
+							delete(tw.Trades, txId)
+						}
 					}
 				}
 			}
-
-			//hash, err := chainhash.NewHashFromStr(order.TxID)
-			//tx, err := tw.BTCClient.GetRawTransactionVerbose(hash)
-			//if err != nil {
-			//}
-			//fmt.Println(fmt.Sprintf("Tx: %+v", tx))
 		}
 
 		time.Sleep(time.Second * 5)
 	}
 }
 
-func (tw *TxWatcher) Watch() {
-	log.Infof("Tx Watcher Running")
-
-	collection := stores.DB.Mongo.Client.Database(stores.DB_NAME).Collection(stores.DB_COLLECTION_TRADES)
-	pipeline := mongo.Pipeline{
-		{
-			{"$match", bson.D{
-				{"fullDocument.txId", bson.D{{"$exists", true}}},
-				{"operationType", bson.M{"$in": bson.A{"insert", "update", "replace", "upsert"}}},
-			}},
-		},
-	}
-	changeStream, err := collection.Watch(context.Background(), pipeline)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer changeStream.Close(context.Background())
-
-	for changeStream.Next(context.Background()) {
-		var changeDoc struct {
-			FullDocument models.Order `bson:"fullDocument"`
+func (tw *TxWatcher) Poll() {
+	for {
+		trades, err := models.GetTradesByStatus("SUBMITTED")
+		if err != nil {
+			log.Error(err)
 		}
-		if err := changeStream.Decode(&changeDoc); err != nil {
-			log.Println("Error decoding change document:", err)
-			continue
+		for _, trade := range trades {
+			if trade.TxID != nil {
+				tw.Trades[*trade.TxID] = trade
+			}
 		}
-		tw.Orders[changeDoc.FullDocument.TxID] = changeDoc.FullDocument
+
+		time.Sleep(time.Second * 5)
 	}
 }
+
+//func (tw *TxWatcher) Watch() {
+//	log.Infof("Tx Watcher Running")
+//
+//	collection := stores.DB.Mongo.Client.Database(stores.DB_NAME).Collection(stores.DB_COLLECTION_TRADES)
+//	pipeline := mongo.Pipeline{
+//		{
+//			{"$match", bson.D{
+//				{"fullDocument.txId", bson.D{{"$exists", true}}},
+//				{"operationType", bson.M{"$in": bson.A{"insert", "update", "replace", "upsert"}}},
+//			}},
+//		},
+//	}
+//	changeStream, err := collection.Watch(context.Background(), pipeline)
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//	defer changeStream.Close(context.Background())
+//
+//	for changeStream.Next(context.Background()) {
+//
+//		fmt.Println("===================")
+//		fmt.Println("Detected")
+//		fmt.Println("===================")
+//
+//		var changeDoc struct {
+//			FullDocument models.Trade `bson:"fullDocument"`
+//		}
+//		if err := changeStream.Decode(&changeDoc); err != nil {
+//			log.Println("Error decoding change document:", err)
+//			continue
+//		}
+//		tw.Trades[changeDoc.FullDocument.TxID] = changeDoc.FullDocument
+//	}
+//}
