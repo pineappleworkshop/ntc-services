@@ -1,22 +1,18 @@
 package services
 
 import (
-	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/rpcclient"
 	"github.com/btcsuite/btcd/wire"
 	log "github.com/sirupsen/logrus"
 	"ntc-services/config"
 )
 
-type Insciber struct {
+type Inscriber struct {
 	BTCClient *rpcclient.Client
 }
 
-func Inscribe() (interface{}, error) {
-	netParams := &chaincfg.MainNetParams
-
+func NewInscriber() (*Inscriber, error) {
 	host, err := config.GetBTCRPCHost()
 	if err != nil {
 		return nil, err
@@ -38,48 +34,57 @@ func Inscribe() (interface{}, error) {
 		HTTPPostMode: true, // Bitcoin core only supports HTTP POST mode
 		DisableTLS:   true, // Bitcoin core does not provide TLS by default
 	}
+
 	client, err := rpcclient.New(connCfg, nil)
 	if err != nil {
 		log.Error(err)
 		return nil, err
 	}
 
-	commitTxOutPointList := make([]*wire.OutPoint, 0)
-	// you can get from `client.ListUnspent()`
-	unspent, err := client.ListUnspent()
+	return &Inscriber{
+		BTCClient: client,
+	}, nil
+}
+
+func (i *Inscriber) Inscribe(request *InscriptionRequest) (*wire.MsgTx, []*wire.MsgTx, int64, error) {
+	netParams := &chaincfg.MainNetParams
+
+	host, err := config.GetBTCRPCHost()
 	if err != nil {
-
+		return nil, nil, -1, err
 	}
-
-	log.Infof("unspent: %+v", unspent)
-
-	utxoAddress := "bc1pxy8gsmgu5zzv0ytj7ae4pgnqkcdwaqas7xmc4szcg70zqwsj4rxss2tvhu"
-	address, err := btcutil.DecodeAddress(utxoAddress, netParams)
+	user, err := config.GetBTCRPCUser()
 	if err != nil {
-		log.Fatalf("decode address err %v", err)
+		return nil, nil, -1, err
 	}
-	unspentList, err := client.ListUnspentMinMaxAddresses(1, 9999999, []btcutil.Address{address})
+	password, err := config.GetBTCRPCPassword()
 	if err != nil {
-		log.Fatalf("list err err %v", err)
+		return nil, nil, -1, err
 	}
 
-	for i := range unspentList {
-		inTxid, err := chainhash.NewHashFromStr(unspentList[i].TxID)
-		if err != nil {
-			log.Fatalf("decode in hash err %v", err)
-		}
-		commitTxOutPointList = append(commitTxOutPointList, wire.NewOutPoint(inTxid, unspentList[i].Vout))
+	// Connect to local bitcoin core RPC server using HTTP POST mode.z
+	connCfg := &rpcclient.ConnConfig{
+		Host:         *host,
+		User:         *user,
+		Pass:         *password,
+		HTTPPostMode: true, // Bitcoin core only supports HTTP POST mode
+		DisableTLS:   true, // Bitcoin core does not provide TLS by default
+	}
+	client, err := rpcclient.New(connCfg, nil)
+	if err != nil {
+		log.Error(err)
+		return nil, nil, -1, err
 	}
 
-	//wallet, err := client.CreateWallet("Inscriber Wallet")
-	//if err != nil {
-	//	// do something
-	//}
-	//
-	//client.ListUnspentMinMaxAddresses()
+	tool, err := NewInscriptionTool(netParams, client, request)
+	if err != nil {
+		log.Fatalf("Failed to create inscription tool: %v", err)
+	}
 
-	// TODO: add some bitcoin
-	// TODO: inscribe something
+	commitTx, revealTxs, fees, err := tool.BuildInscribe()
+	if err != nil {
+		return nil, nil, -1, err
+	}
 
-	return nil, nil
+	return commitTx, revealTxs, fees, nil
 }

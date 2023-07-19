@@ -26,11 +26,11 @@ func StartServices() (err error) {
 	//}
 	//PARSER.Run()
 
-	TxWatcher, err := NewTxWatcher()
-	if err != nil {
-		panic(err)
-	}
-	go TxWatcher.Run()
+	//TxWatcher, err := NewTxWatcher()
+	//if err != nil {
+	//	panic(err)
+	//}
+	//go TxWatcher.Run()
 
 	//Inscribe()
 

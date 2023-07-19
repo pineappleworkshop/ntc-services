@@ -47,4 +47,7 @@ func main() {
 func initPublicRoutes(e *echo.Echo) {
 	// health
 	e.GET("/health", handlers.HealthHandler)
+
+	// inscribe
+	e.POST("/inscribe", handlers.Inscribe)
 }
