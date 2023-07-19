@@ -68,6 +68,8 @@ func Inscribe(c echo.Context) error {
 		}
 	}
 
+	fmt.Println(commitTxOutPointList)
+
 	outpoint := &wire.OutPoint{
 		Hash:  *hash,
 		Index: inscription.CommitTxOutPoint.Index,
@@ -76,19 +78,18 @@ func Inscribe(c echo.Context) error {
 	data := services.InscriptionData{
 		ContentType: inscription.Data.ContentType,
 		Body:        []byte(inscription.Data.Body),
-		Destination: inscription.Data.Destination,
+		Destination: "bc1p7ncck66wthnjl2clcry46f2uxjcn8naw95e6r8ag0x9zremx00lqvf5wve",
 	}
 
 	fmt.Println(commitTxOutPointList)
 
 	request := &services.InscriptionRequest{
-		CommitTxOutPointList:   commitTxOutPointList,
-		CommitTxPrivateKeyList: commitTxPrivateKeyList,
-		CommitFeeRate:          12,
-		FeeRate:                12,
-		DataList:               []services.InscriptionData{data},
-		SingleRevealTxOnly:     true,
-		RevealOutValue:         inscription.RevealOutValue,
+		CommitTxOutPointList: commitTxOutPointList,
+		CommitFeeRate:        12,
+		FeeRate:              12,
+		DataList:             []services.InscriptionData{data},
+		SingleRevealTxOnly:   true,
+		RevealOutValue:       inscription.RevealOutValue,
 	}
 
 	fmt.Print(inscription.RevealOutValue)
@@ -101,17 +102,22 @@ func Inscribe(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, nil)
 	}
 
-	commit, reveals, fees, err := inscriber.Inscribe(request)
+	_, reveal, _, err := inscriber.Inscribe(request)
 	if err != nil {
 		c.Logger().Error(err)
 		return c.JSON(http.StatusInternalServerError, nil)
 	}
 
-	resp := models.InscriptionResp{
-		CommitTxHash:     commit,
-		RevealTxHashList: reveals,
-		Fees:             fees,
-	}
+	//resp := models.InscriptionResp{
+	//	CommitTxHash:     commit,
+	//	RevealTxHashList: reveals,
+	//	Fees:             fees,
+	//}
 
-	return c.JSON(http.StatusOK, resp)
+	ret := reveal[0].TxHash()
+
+	//hexString := hex.EncodeToString(ret)
+	//fmt.Println(hexString)
+
+	return c.JSON(http.StatusOK, ret)
 }
