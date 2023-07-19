@@ -49,34 +49,7 @@ func NewInscriber() (*Inscriber, error) {
 func (i *Inscriber) Inscribe(request *InscriptionRequest) (*wire.MsgTx, []*wire.MsgTx, int64, error) {
 	netParams := &chaincfg.MainNetParams
 
-	host, err := config.GetBTCRPCHost()
-	if err != nil {
-		return nil, nil, -1, err
-	}
-	user, err := config.GetBTCRPCUser()
-	if err != nil {
-		return nil, nil, -1, err
-	}
-	password, err := config.GetBTCRPCPassword()
-	if err != nil {
-		return nil, nil, -1, err
-	}
-
-	// Connect to local bitcoin core RPC server using HTTP POST mode.z
-	connCfg := &rpcclient.ConnConfig{
-		Host:         *host,
-		User:         *user,
-		Pass:         *password,
-		HTTPPostMode: true, // Bitcoin core only supports HTTP POST mode
-		DisableTLS:   true, // Bitcoin core does not provide TLS by default
-	}
-	client, err := rpcclient.New(connCfg, nil)
-	if err != nil {
-		log.Error(err)
-		return nil, nil, -1, err
-	}
-
-	tool, err := NewInscriptionTool(netParams, client, request)
+	tool, err := NewInscriptionTool(netParams, i.BTCClient, request)
 	if err != nil {
 		log.Fatalf("Failed to create inscription tool: %v", err)
 	}

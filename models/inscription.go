@@ -5,7 +5,6 @@ import (
 )
 
 type Inscription struct {
-	//CommitTxOutPoint *OutPoint        `json:"commitTxOutPoint"`
 	InscriberAddress string           `json:"inscriberAddress"`
 	CommitFeeRate    int64            `json:"commitFeeRate"`
 	FeeRate          int64            `json:"feeRate"`
@@ -31,10 +30,8 @@ type InscriptionResp struct {
 }
 
 func NewInscription() *Inscription {
-	//commitTxOutPoint := OutPoint{}
 	data := InscriptionData{}
 	return &Inscription{
-		//CommitTxOutPoint: &commitTxOutPoint,
 		Data: &data,
 	}
 }
