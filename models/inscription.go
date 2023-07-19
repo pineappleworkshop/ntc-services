@@ -40,14 +40,9 @@ func NewInscription() *Inscription {
 }
 
 func (i *Inscription) Parse(body map[string]interface{}) error {
-	//if body["commitTxOutPoint"] != nil {
-	//	if body["commitTxOutPoint"].(map[string]interface{})["hash"] != nil {
-	//		i.CommitTxOutPoint.Hash = body["commitTxOutPoint"].(map[string]interface{})["hash"].(string)
-	//	}
-	//	if body["commitTxOutPoint"].(map[string]interface{})["index"] != nil {
-	//		i.CommitTxOutPoint.Index = uint32(body["commitTxOutPoint"].(map[string]interface{})["index"].(float64))
-	//	}
-	//}
+	if body["inscriberAddress"] != nil {
+		i.InscriberAddress = body["inscriberAddress"].(string)
+	}
 	if body["commitFeeRate"] != nil {
 		i.CommitFeeRate = int64(body["commitFeeRate"].(float64))
 	}
