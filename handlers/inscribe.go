@@ -1,19 +1,15 @@
 package handlers
 
 import (
-	"encoding/hex"
+	"encoding/json"
 	"fmt"
-	"github.com/btcsuite/btcd/btcec/v2"
-	"github.com/btcsuite/btcd/btcec/v2/schnorr"
-	"github.com/btcsuite/btcd/btcutil"
-	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/labstack/echo/v4"
+	"io/ioutil"
+	"log"
 	"net/http"
 	"ntc-services/models"
-	"ntc-services/pkg/btcapi/mempool"
 	"ntc-services/services"
 )
 
@@ -30,71 +26,47 @@ func Inscribe(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, nil)
 	}
 
-	hash, err := chainhash.NewHashFromStr(inscription.CommitTxOutPoint.Hash)
+	url := fmt.Sprintf("https://blockchain.info/unspent?active=%+v", inscription.InscriberAddress)
+	resp, err := http.Get(url)
 	if err != nil {
-		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, nil)
+		log.Fatalln(err)
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalln(err)
 	}
 
-	netParams := &chaincfg.MainNetParams
-	btcApiClient := mempool.NewClient(netParams)
-
-	utxoPrivateKeyHex := ""
-	//destination := "bc1p7ncck66wthnjl2clcry46f2uxjcn8naw95e6r8ag0x9zremx00lqvf5wve"
-
-	commitTxOutPointList := make([]*wire.OutPoint, 0)
-	commitTxPrivateKeyList := make([]*btcec.PrivateKey, 0)
-
-	{
-		utxoPrivateKeyBytes, err := hex.DecodeString(utxoPrivateKeyHex)
-		if err != nil {
-			fmt.Println(err)
-		}
-		utxoPrivateKey, _ := btcec.PrivKeyFromBytes(utxoPrivateKeyBytes)
-
-		utxoTaprootAddress, err := btcutil.NewAddressTaproot(schnorr.SerializePubKey(txscript.ComputeTaprootKeyNoScript(utxoPrivateKey.PubKey())), netParams)
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		unspentList, err := btcApiClient.ListUnspent(utxoTaprootAddress)
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		for i := range unspentList {
-			commitTxOutPointList = append(commitTxOutPointList, unspentList[i].Outpoint)
-			commitTxPrivateKeyList = append(commitTxPrivateKeyList, utxoPrivateKey)
-		}
-	}
-
-	fmt.Println(commitTxOutPointList)
-
-	outpoint := &wire.OutPoint{
-		Hash:  *hash,
-		Index: inscription.CommitTxOutPoint.Index,
+	var blockchainResponse models.BlockchainInfoResponse
+	if err := json.Unmarshal(body, &blockchainResponse); err != nil {
+		log.Fatalln(err)
 	}
 
 	data := services.InscriptionData{
 		ContentType: inscription.Data.ContentType,
 		Body:        []byte(inscription.Data.Body),
-		Destination: "bc1p7ncck66wthnjl2clcry46f2uxjcn8naw95e6r8ag0x9zremx00lqvf5wve",
+		Destination: inscription.Data.Destination,
 	}
 
-	fmt.Println(commitTxOutPointList)
+	var outpountList []*wire.OutPoint
+	for _, op := range blockchainResponse.UnspentOutputs {
+		hash, _ := chainhash.NewHashFromStr(op.TxHashBigEndian)
+		outpoint := wire.OutPoint{
+			Hash:  *hash,
+			Index: uint32(op.TxOutputN),
+		}
+		outpountList = append(outpountList, &outpoint)
+	}
 
 	request := &services.InscriptionRequest{
-		CommitTxOutPointList: commitTxOutPointList,
+		CommitTxOutPointList: outpountList,
 		CommitFeeRate:        12,
 		FeeRate:              12,
 		DataList:             []services.InscriptionData{data},
 		SingleRevealTxOnly:   true,
 		RevealOutValue:       inscription.RevealOutValue,
 	}
-
-	fmt.Print(inscription.RevealOutValue)
-	fmt.Print(data)
-	fmt.Print(outpoint)
 
 	inscriber, err := services.NewInscriber()
 	if err != nil {
@@ -108,16 +80,7 @@ func Inscribe(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, nil)
 	}
 
-	//resp := models.InscriptionResp{
-	//	CommitTxHash:     commit,
-	//	RevealTxHashList: reveals,
-	//	Fees:             fees,
-	//}
-
 	ret := reveal[0].TxHash()
-
-	//hexString := hex.EncodeToString(ret)
-	//fmt.Println(hexString)
 
 	return c.JSON(http.StatusOK, ret)
 }

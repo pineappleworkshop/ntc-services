@@ -5,7 +5,8 @@ import (
 )
 
 type Inscription struct {
-	CommitTxOutPoint *OutPoint        `json:"commitTxOutPoint"`
+	//CommitTxOutPoint *OutPoint        `json:"commitTxOutPoint"`
+	InscriberAddress string           `json:"inscriberAddress"`
 	CommitFeeRate    int64            `json:"commitFeeRate"`
 	FeeRate          int64            `json:"feeRate"`
 	Data             *InscriptionData `json:"data"`
@@ -30,23 +31,23 @@ type InscriptionResp struct {
 }
 
 func NewInscription() *Inscription {
-	commitTxOutPoint := OutPoint{}
+	//commitTxOutPoint := OutPoint{}
 	data := InscriptionData{}
 	return &Inscription{
-		CommitTxOutPoint: &commitTxOutPoint,
-		Data:             &data,
+		//CommitTxOutPoint: &commitTxOutPoint,
+		Data: &data,
 	}
 }
 
 func (i *Inscription) Parse(body map[string]interface{}) error {
-	if body["commitTxOutPoint"] != nil {
-		if body["commitTxOutPoint"].(map[string]interface{})["hash"] != nil {
-			i.CommitTxOutPoint.Hash = body["commitTxOutPoint"].(map[string]interface{})["hash"].(string)
-		}
-		if body["commitTxOutPoint"].(map[string]interface{})["index"] != nil {
-			i.CommitTxOutPoint.Index = uint32(body["commitTxOutPoint"].(map[string]interface{})["index"].(float64))
-		}
-	}
+	//if body["commitTxOutPoint"] != nil {
+	//	if body["commitTxOutPoint"].(map[string]interface{})["hash"] != nil {
+	//		i.CommitTxOutPoint.Hash = body["commitTxOutPoint"].(map[string]interface{})["hash"].(string)
+	//	}
+	//	if body["commitTxOutPoint"].(map[string]interface{})["index"] != nil {
+	//		i.CommitTxOutPoint.Index = uint32(body["commitTxOutPoint"].(map[string]interface{})["index"].(float64))
+	//	}
+	//}
 	if body["commitFeeRate"] != nil {
 		i.CommitFeeRate = int64(body["commitFeeRate"].(float64))
 	}
@@ -69,4 +70,20 @@ func (i *Inscription) Parse(body map[string]interface{}) error {
 	}
 
 	return nil
+}
+
+type UnspentOutput struct {
+	TxHashBigEndian string `json:"tx_hash_big_endian"`
+	TxHash          string `json:"tx_hash"`
+	TxOutputN       int    `json:"tx_output_n"`
+	Script          string `json:"script"`
+	Value           int    `json:"value"`
+	ValueHex        string `json:"value_hex"`
+	Confirmations   int    `json:"confirmations"`
+	TxIndex         int64  `json:"tx_index"`
+}
+
+type BlockchainInfoResponse struct {
+	Notice         string          `json:"notice"`
+	UnspentOutputs []UnspentOutput `json:"unspent_outputs"`
 }
