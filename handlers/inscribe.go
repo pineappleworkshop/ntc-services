@@ -1,11 +1,19 @@
 package handlers
 
 import (
+	"encoding/hex"
+	"fmt"
+	"github.com/btcsuite/btcd/btcec/v2"
+	"github.com/btcsuite/btcd/btcec/v2/schnorr"
+	"github.com/btcsuite/btcd/btcutil"
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/labstack/echo/v4"
 	"net/http"
 	"ntc-services/models"
+	"ntc-services/pkg/btcapi/mempool"
 	"ntc-services/services"
 )
 
@@ -28,6 +36,38 @@ func Inscribe(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, nil)
 	}
 
+	netParams := &chaincfg.MainNetParams
+	btcApiClient := mempool.NewClient(netParams)
+
+	utxoPrivateKeyHex := ""
+	//destination := "bc1p7ncck66wthnjl2clcry46f2uxjcn8naw95e6r8ag0x9zremx00lqvf5wve"
+
+	commitTxOutPointList := make([]*wire.OutPoint, 0)
+	commitTxPrivateKeyList := make([]*btcec.PrivateKey, 0)
+
+	{
+		utxoPrivateKeyBytes, err := hex.DecodeString(utxoPrivateKeyHex)
+		if err != nil {
+			fmt.Println(err)
+		}
+		utxoPrivateKey, _ := btcec.PrivKeyFromBytes(utxoPrivateKeyBytes)
+
+		utxoTaprootAddress, err := btcutil.NewAddressTaproot(schnorr.SerializePubKey(txscript.ComputeTaprootKeyNoScript(utxoPrivateKey.PubKey())), netParams)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		unspentList, err := btcApiClient.ListUnspent(utxoTaprootAddress)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		for i := range unspentList {
+			commitTxOutPointList = append(commitTxOutPointList, unspentList[i].Outpoint)
+			commitTxPrivateKeyList = append(commitTxPrivateKeyList, utxoPrivateKey)
+		}
+	}
+
 	outpoint := &wire.OutPoint{
 		Hash:  *hash,
 		Index: inscription.CommitTxOutPoint.Index,
@@ -39,15 +79,21 @@ func Inscribe(c echo.Context) error {
 		Destination: inscription.Data.Destination,
 	}
 
+	fmt.Println(commitTxOutPointList)
+
 	request := &services.InscriptionRequest{
-		CommitTxOutPointList:   []*wire.OutPoint{outpoint},
-		CommitTxPrivateKeyList: nil,
-		CommitFeeRate:          inscription.CommitFeeRate,
-		FeeRate:                inscription.FeeRate,
+		CommitTxOutPointList:   commitTxOutPointList,
+		CommitTxPrivateKeyList: commitTxPrivateKeyList,
+		CommitFeeRate:          12,
+		FeeRate:                12,
 		DataList:               []services.InscriptionData{data},
 		SingleRevealTxOnly:     true,
 		RevealOutValue:         inscription.RevealOutValue,
 	}
+
+	fmt.Print(inscription.RevealOutValue)
+	fmt.Print(data)
+	fmt.Print(outpoint)
 
 	inscriber, err := services.NewInscriber()
 	if err != nil {
@@ -67,5 +113,5 @@ func Inscribe(c echo.Context) error {
 		Fees:             fees,
 	}
 
-	return c.JSON(http.StatusNotImplemented, resp)
+	return c.JSON(http.StatusOK, resp)
 }
