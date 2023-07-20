@@ -13,7 +13,7 @@ type Trade struct {
 	MakerAddress          string             `json:"makerAddress" bson:"makerAddress"`
 	TakerAddress          string             `json:"takerAddress" bson:"takerAddress"`
 	Status                string             `json:"status" bson:"status"`
-	PBST                  string             `json:"pbst" bson:"pbst"`
+	PSBT                  string             `json:"psbt" bson:"psbt"`
 	MakerSelections       []interface{}      `json:"makerSelections" bson:"makerSelections"`
 	TakerSelections       []interface{}      `json:"takerSelections" bson:"takerSelections"`
 	MakerUninscribedUtxos []interface{}      `json:"makerUninscribedUtxos" bson:"makerUninscribedUtxos"`
