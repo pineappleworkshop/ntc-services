@@ -1,0 +1,10 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: pwv2-mongodb-replicaset-headless
+  namespace: ntc
+spec:
+  type: ExternalName
+  externalName: pwv2-mongodb-replicaset-headless.stores.svc.cluster.local
+  ports:
+  - port: 27017

@@ -3,11 +3,12 @@ package stores
 import (
 	"context"
 	"fmt"
+	"ntc-services/config"
+	"time"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"ntc-services/config"
-	"time"
 )
 
 type Mongo struct {
@@ -87,9 +88,9 @@ func (m *Mongo) Connect() error {
 		return err
 	}
 
-	if err := m.CreateIndexes(); err != nil {
-		return err
-	}
+	// if err := m.CreateIndexes(); err != nil {
+	// 	return err
+	// }
 
 	return nil
 }

@@ -6,7 +6,6 @@ metadata:
   name: ntc-services
   namespace: ntc
 spec:
-  type: LoadBalancer
   ports:
     - port: 3444
       targetPort: 3444
