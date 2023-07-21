@@ -18,7 +18,5 @@ func StartServices() (err error) {
 	}
 	go TxWatcher.Run()
 
-	//Inscribe()
-
 	return nil
 }
