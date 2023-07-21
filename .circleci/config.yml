@@ -99,7 +99,7 @@ workflows:
           deployment: ntc-services
           image: gcr.io/pineappleworkshop/ntc-services
           tag: 0.0.49
-          namespace: default
+          namespace: ntc
           context: ntc-services-prod
           filters:
             branches:
