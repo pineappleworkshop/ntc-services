@@ -1,16 +1,12 @@
 package services
 
-import (
-	"ntc-services/models"
-)
-
-var STATE *models.State
+// var STATE *models.State
 
 func StartServices() (err error) {
-	STATE, err = BootstrapState()
-	if err != nil {
-		panic(err)
-	}
+	// STATE, err = BootstrapState()
+	// if err != nil {
+	// 	panic(err)
+	// }
 
 	TxWatcher, err := NewTxWatcher()
 	if err != nil {
