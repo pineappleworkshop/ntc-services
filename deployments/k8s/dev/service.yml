@@ -4,7 +4,6 @@ metadata:
   labels:
     app: ntc-services
   name: ntc-services
-  namespace: ntc
 spec:
   ports:
     - port: 3444
