@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: ntc-services
-          image: gcr.io/pineappleworkshop/ntc-services:0.0.53
+          image: gcr.io/pineappleworkshop/ntc-services:0.0.54
           env:
             - name: ENV
               value: 'prod'
