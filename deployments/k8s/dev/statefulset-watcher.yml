@@ -28,7 +28,7 @@ spec:
     spec:
       containers:
         - name: ntc-watcher
-          image: gcr.io/pineappleworkshop/ntc-services:0.0.51
+          image: gcr.io/pineappleworkshop/ntc-services:0.0.52
           env:
             - name: ENV
               value: 'dev'
