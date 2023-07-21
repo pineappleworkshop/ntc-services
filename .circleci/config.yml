@@ -77,19 +77,19 @@ workflows:
             branches:
               only:
                 - dev
-#      - deploy:
-#          cluster: pw-dev
-#          container: ntc-services
-#          deployment: ntc-services
-#          image: gcr.io/pineappleworkshop/ntc-services
-#          tag: 0.0.52
-#          namespace: default
-#          filters:
-#            branches:
-#              only:
-#                - dev
-#          requires:
-#            - gcp-gcr/build-and-push-image
+      - deploy:
+          cluster: pw-dev
+          container: ntc-services
+          deployment: ntc-services
+          image: gcr.io/pineappleworkshop/ntc-services
+          tag: 0.0.52
+          namespace: default
+          filters:
+            branches:
+              only:
+                - dev
+          requires:
+            - gcp-gcr/build-and-push-image
 
   docker-build-push-deploy-stage:
     jobs:
@@ -99,7 +99,7 @@ workflows:
           deployment: ntc-services
           image: gcr.io/pineappleworkshop/ntc-services
           tag: 0.0.52
-          namespace: default
+          namespace: ntc
           context: ntc-services-prod
           filters:
             branches:
