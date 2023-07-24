@@ -1,12 +1,13 @@
 package services
 
 import (
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcd/rpcclient"
-	log "github.com/sirupsen/logrus"
 	"ntc-services/config"
 	"ntc-services/models"
 	"time"
+
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/btcsuite/btcd/rpcclient"
+	log "github.com/sirupsen/logrus"
 )
 
 /*
@@ -21,12 +22,12 @@ order statuses
 	export const CONFIRMED = "CONFIRMED"	// The tx has left the mempool and has been successful facilitated
 */
 
-type TxWatcher struct {
+type TradeWatcher struct {
 	BTCClient *rpcclient.Client
 	Trades    map[string]*models.Trade
 }
 
-func NewTxWatcher() (*TxWatcher, error) {
+func NewTradeWatcher() (*TradeWatcher, error) {
 	host, err := config.GetBTCRPCHost()
 	if err != nil {
 		return nil, err
@@ -55,13 +56,13 @@ func NewTxWatcher() (*TxWatcher, error) {
 		return nil, err
 	}
 
-	return &TxWatcher{
+	return &TradeWatcher{
 		BTCClient: client,
 		Trades:    make(map[string]*models.Trade),
 	}, nil
 }
 
-func (tw *TxWatcher) Run() {
+func (tw *TradeWatcher) Run() {
 	go tw.Poll()
 
 	for {
@@ -137,7 +138,7 @@ func (tw *TxWatcher) Run() {
 	}
 }
 
-func (tw *TxWatcher) Poll() {
+func (tw *TradeWatcher) Poll() {
 	for {
 		trades, err := models.GetTradesByStatus("SUBMITTED")
 		if err != nil {
@@ -153,7 +154,7 @@ func (tw *TxWatcher) Poll() {
 	}
 }
 
-//func (tw *TxWatcher) Watch() {
+//func (tw *TradeWatcher) Watch() {
 //	log.Infof("Tx Watcher Running")
 //
 //	collection := stores.DB.Mongo.Client.Database(stores.DB_NAME).Collection(stores.DB_COLLECTION_TRADES)
