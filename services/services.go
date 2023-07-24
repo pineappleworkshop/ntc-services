@@ -8,11 +8,11 @@ func StartServices() (err error) {
 	// 	panic(err)
 	// }
 
-	TxWatcher, err := NewTxWatcher()
+	TradeWatcher, err := NewTradeWatcher()
 	if err != nil {
 		panic(err)
 	}
-	go TxWatcher.Run()
+	go TradeWatcher.Run()
 
 	return nil
 }
