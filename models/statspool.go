@@ -1,6 +1,8 @@
 package models
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type StatsPool struct {
 	FastestFee  int64 `json:"fastestFee"`
@@ -15,11 +17,12 @@ type StatsPool struct {
 		EconomyFee  string `json:"economyFee"`
 		MinimumFee  string `json:"minimumFee"`
 	} `json:"computed"`
-	BTCRaw float64 `json:"btcRaw"`
-	BTC    string  `json:"btc"`
+	BTCRaw      float64 `json:"btcRaw"`
+	BTC         string  `json:"btc"`
+	BlockHeight int64   `json:"blockHeight"`
 }
 
-func NewStatsPool(btcRaw float64) *StatsPool {
+func NewStatsPool(btcRaw float64, blockHeight int64) *StatsPool {
 	return &StatsPool{
 		Computed: struct {
 			FastestFee  string `json:"fastestFee"`
@@ -28,7 +31,8 @@ func NewStatsPool(btcRaw float64) *StatsPool {
 			EconomyFee  string `json:"economyFee"`
 			MinimumFee  string `json:"minimumFee"`
 		}{},
-		BTCRaw: btcRaw,
+		BTCRaw:      btcRaw,
+		BlockHeight: blockHeight,
 	}
 }
 

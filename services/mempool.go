@@ -28,7 +28,7 @@ func NewMempool() (*Mempool, error) {
 }
 
 func (m *Mempool) GetRecommendedFees() (interface{}, error) {
-	resp, err := m.get("/fees/recommended")
+	resp, err := m.get("/v1/fees/recommended")
 	if err != nil {
 		return nil, err
 	}
@@ -39,6 +39,20 @@ func (m *Mempool) GetRecommendedFees() (interface{}, error) {
 	}
 
 	return body, nil
+}
+
+func (m *Mempool) GetBlockHeight() (int64, error) {
+	resp, err := m.get("/blocks/tip/height")
+	if err != nil {
+		return -1, err
+	}
+
+	var height int64
+	if err := json.Unmarshal(resp, &height); err != nil {
+		return -1, err
+	}
+
+	return height, nil
 }
 
 func (m *Mempool) get(endpoint string) ([]byte, error) {
