@@ -1,10 +1,11 @@
 package handlers
 
 import (
-	"github.com/labstack/echo/v4"
 	"net/http"
 	"ntc-services/config"
 	"ntc-services/models"
+
+	"github.com/labstack/echo/v4"
 )
 
 func HealthHandler(c echo.Context) error {
@@ -14,12 +15,12 @@ func HealthHandler(c echo.Context) error {
 	health.Version = config.VERSION
 
 	// TODO: path react to env
-	state, err := models.GetState()
-	if err != nil {
-		c.Logger().Error(err)
-	}
+	// state, err := models.GetState()
+	// if err != nil {
+	// 	c.Logger().Error(err)
+	// }
 
-	health.State = state
+	// health.State = state
 
 	return c.JSON(http.StatusOK, health)
 }
