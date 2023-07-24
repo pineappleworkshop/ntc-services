@@ -1,7 +1,7 @@
 kind: Service
 apiVersion: v1
 metadata:
-  name: pwv2-mongodb-replicaset-headless
+  name: pw-mongodb-replicaset-headless
   namespace: ntc
 spec:
   type: ExternalName
