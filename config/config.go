@@ -142,3 +142,27 @@ func GetBTCRPCPassword() (*string, error) {
 	}
 	return &password, nil
 }
+
+func GetBestInSlotBaseURL() (string, error) {
+	baseURL := viper.GetString("bis_base_url")
+	if baseURL == "" {
+		return "err", errors.New("no Best In Slot base URL found")
+	}
+	return baseURL, nil
+}
+
+func GetBestInSlotAPIKey() (string, error) {
+	apiKey := viper.GetString("bis_api_key")
+	if apiKey == "" {
+		return "err", errors.New("no Best In Slot base API key found")
+	}
+	return apiKey, nil
+}
+
+func GetMempoolBaseURL() (string, error) {
+	baseURL := viper.GetString("mempool_base_url")
+	if baseURL == "" {
+		return "err", errors.New("no Mempool base URL found")
+	}
+	return baseURL, nil
+}

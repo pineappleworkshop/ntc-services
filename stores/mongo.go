@@ -2,7 +2,6 @@ package stores
 
 import (
 	"context"
-	"fmt"
 	"ntc-services/config"
 	"time"
 
@@ -25,10 +24,6 @@ func NewMongo(hosts []string) *Mongo {
 }
 
 func (m *Mongo) Connect() error {
-	fmt.Println("=============================")
-	fmt.Println(fmt.Sprintf("%+v", m.Hosts))
-	fmt.Println("=============================")
-
 	t := 30 * time.Second
 	ctx, _ := context.WithTimeout(context.Background(), t)
 

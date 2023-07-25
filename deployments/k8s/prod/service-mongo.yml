@@ -4,6 +4,8 @@ metadata:
   name: pw-mongodb-replicaset-headless
   namespace: ntc
 spec:
+  selector:
+    app: pw-mongodb-replicaset-headless
   type: ExternalName
   externalName: pwv2-mongodb-replicaset-headless.stores.svc.cluster.local
   ports:
