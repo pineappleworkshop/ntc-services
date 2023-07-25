@@ -2,6 +2,8 @@ package handlers
 
 import (
 	"errors"
+	"github.com/btcsuite/btcd/btcutil"
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/labstack/echo/v4"
 	"net/http"
 	"strconv"
@@ -47,4 +49,9 @@ func parsePagination(c echo.Context) (int64, int64, error) {
 	}
 
 	return int64(page), int64(limit), nil
+}
+
+func validateBTCAddress(address string) bool {
+	_, err := btcutil.DecodeAddress(address, &chaincfg.MainNetParams)
+	return err == nil
 }

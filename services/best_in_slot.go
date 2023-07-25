@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"github.com/labstack/echo/v4"
 	"io/ioutil"
 	"math"
 	"net/http"
@@ -61,7 +62,7 @@ func (bis *BestInSlot) GetBTCPrice() (float64, error) {
 	return price, nil
 }
 
-func (bis *BestInSlot) GetInscriptionsByWalletAddr(addr string, limit, page int64) (*models.BisInscriptions, error) {
+func (bis *BestInSlot) GetInscriptionsByWalletAddr(c echo.Context, addr string, limit, page int64) (*models.BisInscriptions, error) {
 	// TODO: Implement limit, note: BIS supports incrementals of 20
 	offset := fmt.Sprintf("&offset=%s", strconv.Itoa(int((page-1)*100)))
 	count := fmt.Sprintf("&count=%s", strconv.Itoa(int(limit)))
@@ -76,11 +77,15 @@ func (bis *BestInSlot) GetInscriptionsByWalletAddr(addr string, limit, page int6
 
 	resp, err := bis.getV3(url)
 	if err != nil {
+		// TODO: revist ctx tree
+		c.Logger().Error(err.Error())
 		return nil, err
 	}
 
 	var inscriptions *models.BisInscriptions
 	if err := json.Unmarshal(resp, &inscriptions); err != nil {
+		// TODO: revist ctx tree
+		c.Logger().Error(err.Error())
 		return nil, err
 	}
 
