@@ -151,6 +151,14 @@ func GetBestInSlotBaseURL() (string, error) {
 	return baseURL, nil
 }
 
+func GetBestInSlotBaseURLV3() (string, error) {
+	baseURL := viper.GetString("bis_base_url_v3")
+	if baseURL == "" {
+		return "err", errors.New("no Best In Slot base URL V3 found")
+	}
+	return baseURL, nil
+}
+
 func GetBestInSlotAPIKey() (string, error) {
 	apiKey := viper.GetString("bis_api_key")
 	if apiKey == "" {
