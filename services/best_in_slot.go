@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"ntc-services/config"
 	"ntc-services/models"
+	"strconv"
 	"time"
 )
 
@@ -60,12 +61,16 @@ func (bis *BestInSlot) GetBTCPrice() (float64, error) {
 	return price, nil
 }
 
-func (bis *BestInSlot) GetInscriptionsByWalletAddr(addr string) (*models.BisInscriptions, error) {
+func (bis *BestInSlot) GetInscriptionsByWalletAddr(addr string, page int64) (*models.BisInscriptions, error) {
+	offset := fmt.Sprintf("&offset=%s", strconv.Itoa(int((page-1)*100)))
+
 	url := fmt.Sprintf(
-		"%s%s%s",
+		"%s%s%s%s%s",
 		"/wallet/inscriptions?address=",
 		addr,
-		"&sort_by=inscr_num&order=asc&count=100&offset=0",
+		"&sort_by=inscr_num&order=asc",
+		"&count=100",
+		offset,
 	)
 
 	resp, err := bis.getV3(url)
