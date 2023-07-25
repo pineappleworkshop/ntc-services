@@ -61,15 +61,16 @@ func (bis *BestInSlot) GetBTCPrice() (float64, error) {
 	return price, nil
 }
 
-func (bis *BestInSlot) GetInscriptionsByWalletAddr(addr string, page int64) (*models.BisInscriptions, error) {
+func (bis *BestInSlot) GetInscriptionsByWalletAddr(addr string, limit, page int64) (*models.BisInscriptions, error) {
+	// TODO: Implement limit, note: BIS supports incrementals of 20
 	offset := fmt.Sprintf("&offset=%s", strconv.Itoa(int((page-1)*100)))
-
+	count := fmt.Sprintf("&count=%s", strconv.Itoa(int(limit)))
 	url := fmt.Sprintf(
 		"%s%s%s%s%s",
 		"/wallet/inscriptions?address=",
 		addr,
 		"&sort_by=inscr_num&order=asc",
-		"&count=100",
+		count,
 		offset,
 	)
 

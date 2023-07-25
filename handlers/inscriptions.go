@@ -7,7 +7,7 @@ import (
 )
 
 func GetInscriptions(c echo.Context) error {
-	page, err := parsePagination(c)
+	page, limit, err := parsePagination(c)
 	if err != nil {
 		// TODO: handle proper err
 		c.Logger().Error(err)
@@ -17,7 +17,7 @@ func GetInscriptions(c echo.Context) error {
 	// TODO: Validate
 	addr := c.Param("addr")
 
-	inscriptions, err := services.BESTINSLOT.GetInscriptionsByWalletAddr(addr, page)
+	inscriptions, err := services.BESTINSLOT.GetInscriptionsByWalletAddr(addr, limit, page)
 	if err != nil {
 		c.Logger().Error(err)
 		return c.JSON(http.StatusInternalServerError, err)
