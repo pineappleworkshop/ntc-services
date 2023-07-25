@@ -23,15 +23,12 @@ type BestInSlot struct {
 }
 
 func NewBestInSlot() (*BestInSlot, error) {
-	apiKey, err := config.GetBestInSlotAPIKey()
-	if err != nil {
-		return nil, err
-	}
 	baseURL, err := config.GetBestInSlotBaseURL()
 	if err != nil {
 		return nil, err
 	}
 	baseURLV3, err := config.GetBestInSlotBaseURLV3()
+	apiKey, err := config.GetBestInSlotAPIKey()
 	if err != nil {
 		return nil, err
 	}
