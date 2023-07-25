@@ -53,4 +53,5 @@ func initPublicRoutes(e *echo.Echo) {
 
 	// inscriptions
 	e.GET("/addresses/:addr/inscriptions", handlers.GetInscriptions)
+	e.GET("/addresses/:addr/brc20s", handlers.GetBRC20s)
 }
