@@ -38,6 +38,7 @@ func NewBestInSlot() (*BestInSlot, error) {
 
 func (bis *BestInSlot) GetBTCPrice() (float64, error) {
 	resp, err := bis.get("/btc_price")
+
 	if err != nil {
 		return -1.0, err
 	}
