@@ -18,6 +18,11 @@ func parsePagination(c echo.Context) (int64, int64, error) {
 	} else {
 		page = 1
 	}
+	if page < 1 {
+		err := errors.New("pagination page cannot be less than 1")
+		c.Logger().Error(http.StatusInternalServerError, err)
+		return -1, -1, err
+	}
 
 	var limit int
 	if c.QueryParam("limit") != "" {
