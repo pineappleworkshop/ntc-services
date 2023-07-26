@@ -50,4 +50,7 @@ func initPublicRoutes(e *echo.Echo) {
 
 	// statspool
 	e.GET("/statspool", handlers.GetStatsPool)
+
+	// inscriptions
+	e.GET("/addresses/:addr/inscriptions", handlers.GetInscriptions)
 }
