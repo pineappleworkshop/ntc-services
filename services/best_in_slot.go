@@ -89,6 +89,28 @@ func (bis *BestInSlot) GetInscriptionsByWalletAddr(c echo.Context, addr string, 
 	return inscriptions, nil
 }
 
+func (bis *BestInSlot) GetBRC20sByWalletAddr(c echo.Context, addr string, limit, page int64) (*models.BisBRC20s, error) {
+	url := fmt.Sprintf(
+		"/brc20/wallet_balances?address=%s", addr,
+	)
+
+	resp, err := bis.getV3(url)
+	if err != nil {
+		// TODO: revist ctx tree
+		c.Logger().Error(err.Error())
+		return nil, err
+	}
+
+	var brc20s *models.BisBRC20s
+	if err := json.Unmarshal(resp, &brc20s); err != nil {
+		// TODO: revist ctx tree
+		c.Logger().Error(err.Error())
+		return nil, err
+	}
+
+	return brc20s, nil
+}
+
 func (bis *BestInSlot) get(endpoint string) ([]byte, error) {
 	req, err := http.NewRequest("GET", bis.BaseURL+endpoint, nil)
 	if err != nil {
