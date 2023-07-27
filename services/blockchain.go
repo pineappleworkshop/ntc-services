@@ -10,10 +10,9 @@ import (
 )
 
 type BlockChain struct {
-	APIKey    string
-	BaseURL   string
-	BaseURLV3 string
-	Client    *http.Client
+	APIKey  string
+	BaseURL string
+	Client  *http.Client
 }
 
 func NewBlockChain() (*BlockChain, error) {
