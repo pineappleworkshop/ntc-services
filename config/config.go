@@ -3,9 +3,10 @@ package config
 import (
 	"errors"
 	"fmt"
+	"os"
+
 	"github.com/spf13/viper"
 	_ "github.com/spf13/viper/remote"
-	"os"
 )
 
 var Conf *Config
@@ -171,6 +172,14 @@ func GetMempoolBaseURL() (string, error) {
 	baseURL := viper.GetString("mempool_base_url")
 	if baseURL == "" {
 		return "err", errors.New("no Mempool base URL found")
+	}
+	return baseURL, nil
+}
+
+func GetOrdexBaseURL() (string, error) {
+	baseURL := viper.GetString("ordex_base_url")
+	if baseURL == "" {
+		return "err", errors.New("no Ordex base URL found")
 	}
 	return baseURL, nil
 }
