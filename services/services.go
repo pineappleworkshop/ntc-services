@@ -3,6 +3,7 @@ package services
 // var STATE *models.State
 var BESTINSLOT *BestInSlot
 var MEMPOOL *Mempool
+var ORDEX *Ordex
 
 func StartServices() (err error) {
 	// STATE, err = BootstrapState()
@@ -22,6 +23,11 @@ func StartServices() (err error) {
 	}
 
 	MEMPOOL, err = NewMempool()
+	if err != nil {
+		panic(err)
+	}
+
+	ORDEX, err = NewOrdex()
 	if err != nil {
 		panic(err)
 	}
