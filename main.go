@@ -1,15 +1,16 @@
 package main
 
 import (
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
-	log "github.com/sirupsen/logrus"
 	"ntc-services/config"
 	"ntc-services/handlers"
 	"ntc-services/services"
 	"ntc-services/stores"
 	"os"
 	"strconv"
+
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
+	log "github.com/sirupsen/logrus"
 )
 
 func init() {
@@ -54,4 +55,7 @@ func initPublicRoutes(e *echo.Echo) {
 	// inscriptions
 	e.GET("/addresses/:addr/inscriptions", handlers.GetInscriptions)
 	e.GET("/addresses/:addr/brc20s", handlers.GetBRC20s)
+
+	// ordex inscription testing api
+	e.GET("/ordex/inscription/:id", handlers.OrdexHandler)
 }
