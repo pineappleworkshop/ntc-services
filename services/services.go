@@ -2,6 +2,7 @@ package services
 
 // var STATE *models.State
 var BESTINSLOT *BestInSlot
+var BLOCKCHAIN *BlockChain
 var MEMPOOL *Mempool
 var ORDEX *Ordex
 
@@ -18,6 +19,11 @@ func StartServices() (err error) {
 	go TradeWatcher.Run()
 
 	BESTINSLOT, err = NewBestInSlot()
+	if err != nil {
+		panic(err)
+	}
+
+	BLOCKCHAIN, err = NewBlockChain()
 	if err != nil {
 		panic(err)
 	}

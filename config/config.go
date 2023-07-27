@@ -152,6 +152,14 @@ func GetBestInSlotBaseURL() (string, error) {
 	return baseURL, nil
 }
 
+func GetBlockChainBaseURL() (string, error) {
+	baseURL := viper.GetString("blockchain_base_url")
+	if baseURL == "" {
+		return "err", errors.New("no Blockchain base URL found")
+	}
+	return baseURL, nil
+}
+
 func GetBestInSlotBaseURLV3() (string, error) {
 	baseURL := viper.GetString("bis_base_url_v3")
 	if baseURL == "" {
