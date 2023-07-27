@@ -6,14 +6,13 @@ type StatsPool struct {
 	HourFee     int64   `json:"hourFee"`
 	EconomyFee  int64   `json:"economyFee"`
 	MinimumFee  int64   `json:"minimumFee"`
-	BTCRaw      float64 `json:"btcRaw"`
-	BTC         string  `json:"btc"`
+	BTCPriceUSD float64 `json:"btcPriceUSD"`
 	BlockHeight int64   `json:"blockHeight"`
 }
 
-func NewStatsPool(btcRaw float64, blockHeight int64) *StatsPool {
+func NewStatsPool(btcPriceUSD float64, blockHeight int64) *StatsPool {
 	return &StatsPool{
-		BTCRaw:      btcRaw,
+		BTCPriceUSD: btcPriceUSD,
 		BlockHeight: blockHeight,
 	}
 }
