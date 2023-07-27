@@ -9,14 +9,11 @@ import (
 )
 
 func GetStatsPool(c echo.Context) error {
-	// TODO: use another source to query for current BTC price
-	// https://www.blockchain.com/explorer/api/blockchain_api
-	// https://api.blockchain.com/v3/exchange/tickers/BTC-USD
-	//price, err := services.BESTINSLOT.GetBTCPrice()
-	//if err != nil {
-	//	c.Logger().Error(err)
-	//	return c.JSON(http.StatusInternalServerError, err)
-	//}
+	price, err := services.BLOCKCHAIN.GetBTCPrice()
+	if err != nil {
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err)
+	}
 
 	blockHeight, err := services.MEMPOOL.GetBlockHeight()
 	if err != nil {
@@ -30,7 +27,7 @@ func GetStatsPool(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, err)
 	}
 
-	resp := models.NewStatsPool(-1.0, blockHeight)
+	resp := models.NewStatsPool(price, blockHeight)
 	if err := resp.Parse(recommendedFees.(map[string]interface{})); err != nil {
 		c.Logger().Error(err)
 		return c.JSON(http.StatusInternalServerError, err)
