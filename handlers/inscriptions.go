@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/labstack/echo/v4"
 	"net/http"
+	"ntc-services/models"
 	"ntc-services/services"
 )
 
@@ -21,14 +22,28 @@ func GetInscriptions(c echo.Context) error {
 	}
 
 	// TODO: revisit err propogation and ctx tree
-	// TODO: discuss the resp structure.. currently a clone of BIS
-	inscriptions, err := services.BESTINSLOT.GetInscriptionsByWalletAddr(c, c.Param("addr"), limit, page)
+	// TODO: try to find inscriptions by inscriptionID before query/possible? (Trying to limit API requests)
+
+	bisInscriptions, err := services.BESTINSLOT.GetInscriptionsByWalletAddr(c, c.Param("addr"), limit, page)
 	if err != nil {
 		c.Logger().Error(err)
 		return c.JSON(http.StatusInternalServerError, err)
 	}
 
-	return c.JSON(http.StatusOK, inscriptions)
+	var inscriptions []*models.Inscription
+	for _, bisInscription := range bisInscriptions.Data {
+		inscription := models.ParseBISInscription(bisInscription)
+		inscriptions = append(inscriptions, inscription)
+	}
+
+	resp := models.InscriptionListResp{
+		Page:         page,
+		Limit:        limit,
+		BlockHeight:  bisInscriptions.BlockHeight,
+		Inscriptions: inscriptions,
+	}
+
+	return c.JSON(http.StatusOK, resp)
 }
 
 func GetBRC20s(c echo.Context) error {
