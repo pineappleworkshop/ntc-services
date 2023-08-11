@@ -1,7 +1,10 @@
 package models
 
 import (
+	"context"
+	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"ntc-services/stores"
 	"time"
 )
 
@@ -26,4 +29,14 @@ func NewWallet(walletType string) *Wallet {
 		//SegwitAddr:   "",
 		CreatedAt: time.Now().Unix(),
 	}
+}
+
+func (w *Wallet) Create(c echo.Context) error {
+	collection := stores.DB.Mongo.Client.Database(stores.DB_NAME).Collection(stores.DB_COLLECTION_WALLETS)
+	if _, err := collection.InsertOne(context.TODO(), w); err != nil {
+		c.Logger().Error(err)
+		return err
+	}
+
+	return nil
 }
