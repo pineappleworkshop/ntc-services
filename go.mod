@@ -5,6 +5,7 @@ go 1.20
 require (
 	github.com/btcsuite/btcd v0.23.4
 	github.com/btcsuite/btcd/btcutil v1.1.0
+	github.com/btcsuite/btcd/btcutil/psbt v1.1.8
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.0.1
 	github.com/labstack/echo/v4 v4.10.2
 	github.com/sirupsen/logrus v1.9.3

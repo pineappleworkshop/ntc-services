@@ -9,20 +9,33 @@ import (
 )
 
 type Trade struct {
-	ID                    primitive.ObjectID `json:"id" bson:"_id"`
-	MakerAddress          string             `json:"makerAddress" bson:"makerAddress"`
-	TakerAddress          string             `json:"takerAddress" bson:"takerAddress"`
-	Status                string             `json:"status" bson:"status"`
-	PSBT                  string             `json:"psbt" bson:"psbt"`
-	MakerSelections       []interface{}      `json:"makerSelections" bson:"makerSelections"`
-	TakerSelections       []interface{}      `json:"takerSelections" bson:"takerSelections"`
-	MakerUninscribedUtxos []interface{}      `json:"makerUninscribedUtxos" bson:"makerUninscribedUtxos"`
-	TakerUninscribedUtxos []interface{}      `json:"takerUninscribedUtxos" bson:"takerUninscribedUtxos"`
-	FeeRate               interface{}        `json:"feeRate" bson:"feeRate"`
-	TxID                  *string            `json:"txId" bson:"txId"`
-	CreatedAt             int64              `json:"createdAt" bson:"createdAt"`
-	UpdatedAt             *int64             `json:"updatedAt" bson:"updatedAt"`
-	//Confirmations   int64              `json:"confirmations" bson:"confirmations"`
+	ID              primitive.ObjectID  `json:"id" bson:"_id"`
+	MakerID         primitive.ObjectID  `json:"maker_id" bson:"maker_id"`
+	Maker           *Side               `json:"maker" bson:"-"`
+	TakerID         *primitive.ObjectID `json:"taker_id" bson:"taker_id"`
+	Taker           *Side               `json:"taker" bson:"take-"`
+	PSBT            *string             `json:"psbt" bson:"psbt"`
+	FeeRate         *FeeRate            `json:"fee_rate" bson:"fee_rate"`
+	PlatformFee     *int64              `json:"platform_fee" bson:"platform_fee"`
+	TxID            *string             `json:"txId" bson:"txId"`
+	Status          string              `json:"status" bson:"status"`
+	StatusChangedAt *int64              `json:"status_changed_at" bson:"status_changed_at"`
+	CreatedAt       int64               `json:"created_at" bson:"created_at"`
+	UpdatedAt       *int64              `json:"updated_at" bson:"updated_at"`
+}
+
+type FeeRate struct {
+	Label string `json:"label" bson:"label"`
+	Value int32  `json:"value" bson:"value"`
+}
+
+func NewTrade(makerID primitive.ObjectID) *Trade {
+	return &Trade{
+		ID:        primitive.NewObjectID(),
+		MakerID:   makerID,
+		Status:    "CREATED",
+		CreatedAt: time.Now().Unix(),
+	}
 }
 
 func (t *Trade) Update() error {
