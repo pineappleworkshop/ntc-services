@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/labstack/echo/v4"
 	"io/ioutil"
 	"math"
 	"net/http"
@@ -13,6 +12,8 @@ import (
 	"ntc-services/models"
 	"strconv"
 	"time"
+
+	"github.com/labstack/echo/v4"
 )
 
 type BestInSlot struct {
@@ -78,6 +79,33 @@ func (bis *BestInSlot) GetInscriptionsByWalletAddr(c echo.Context, addr string, 
 		c.Logger().Error(err.Error())
 		return nil, err
 	}
+
+	var inscriptions *models.BisInscriptions
+	if err := json.Unmarshal(resp, &inscriptions); err != nil {
+		// TODO: revist ctx tree
+		c.Logger().Error(err.Error())
+		return nil, err
+	}
+
+	return inscriptions, nil
+}
+
+func (bis *BestInSlot) GetInscriptionById(c echo.Context, id string) (*models.BisInscriptions, error) {
+	// TODO: Implement limit, note: BIS supports incrementals of 20
+	// /v3/inscription/single_info_id?inscription_id=${ixId}
+	url := fmt.Sprintf(
+		"%s%s",
+		"/v3/inscription/single_info_id?inscription_id=",
+		id,
+	)
+
+	resp, err := bis.getV3(url)
+	if err != nil {
+		// TODO: revist ctx tree
+		c.Logger().Error(err.Error())
+		return nil, err
+	}
+	fmt.Println("resp: ", resp)
 
 	var inscriptions *models.BisInscriptions
 	if err := json.Unmarshal(resp, &inscriptions); err != nil {
