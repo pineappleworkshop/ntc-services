@@ -72,4 +72,7 @@ func initPublicRoutes(e *echo.Echo) {
 
 	// ordex inscription testing api
 	e.GET("/ordex/inscription/:id", handlers.OrdexHandler)
+
+	// experiments
+	e.GET("/experiments/from-unsigned-tx", handlers.PSBTFromUnsignedTx)
 }

@@ -119,7 +119,8 @@ package services
 //	sigHashes := txscript.NewTxSigHashes(p.UnsignedTx, mpof)
 //	sig, err := txscript.RawTxInWitnessSignature(p.UnsignedTx, sigHashes, 0,
 //		p.Inputs[0].WitnessUtxo.Value, p.Inputs[0].WitnessUtxo.PkScript,
-//		txscript.SigHashAll, privKey)
+//		txscript.SigHashAll, privKey,
+//	)
 //
 //	// Use the Updater to add the signature to the input.
 //	u, err := psbt.NewUpdater(p)
@@ -137,6 +138,8 @@ package services
 //	// Finalize PSBT.
 //	err = psbt.Finalize(p, 0)
 //	tx, err := psbt.Extract(p)
+//
+//	//psbt.NewFromSignedTx()
 //
 //	var buf bytes.Buffer
 //	tx.Serialize(&buf)

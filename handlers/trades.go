@@ -102,8 +102,8 @@ func PostAcceptOfferByTradeID(c echo.Context) error {
 }
 
 /*
-
- */
+{}
+*/
 
 func PostSubmitTradeByID(c echo.Context) error {
 
