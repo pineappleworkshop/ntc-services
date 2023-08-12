@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/btcsuite/btcd/btcutil/psbt"
 	"github.com/labstack/echo/v4"
+	"github.com/tnakagawa/goref/bech32m"
 	"net/http"
 )
 
@@ -14,7 +15,8 @@ This experiment proves that we can unwrap an unsigned PBST to ensure the inputs
 are the same UTXOs as selected by the maker/taker.
 
 We are now also extracting the public key from the PkSript (P2TR) outputs of the unsignedTx of a
-psbt to hopefully cross-reference the trade to ensure nothing malicious has occurred
+psbt to hopefully cross-reference the trade to ensure nothing malicious has occurred. Keep in mind,
+we have yet to actually cross-reference these public keys to wallet addresses.
 */
 
 func PSBTFromUnsignedTx(c echo.Context) error {
@@ -47,62 +49,115 @@ func PSBTFromUnsignedTx(c echo.Context) error {
 	}
 	for i, out := range p.UnsignedTx.TxOut {
 		fmt.Println(len(out.PkScript))
+		pubKeyB, err := extractTaprootPublicKey(out.PkScript)
+		if err != nil {
+			c.Logger().Errorf("Failed to extract pubKey from PkScript: %v", err)
+		}
 		pubKey, err := extractTaprootPublicKeyHex(out.PkScript)
 		if err != nil {
 			c.Logger().Errorf("Failed to extract pubKey from PkScript: %v", err)
 		}
+		pkScriptType := determinePublicKeyType(out.PkScript)
+
+		fmt.Printf("ScriptType %v: %+v \n", i, pkScriptType)
+		fmt.Printf("out %v: %+v \n", i, out.PkScript)
 		fmt.Printf("out %v: %+v \n", i, pubKey)
+		fmt.Printf("out %v: %+v \n", i, pubKeyB)
+		pkScriptHex := hex.EncodeToString(out.PkScript)
+		fmt.Printf("out.PkScriptHex %v, %+v \n", i, pkScriptHex)
+		tapRootPubKeyHex := pkScriptHex[2:]
+		fmt.Printf("tapRootPubKeyHex %v, %+v \n", i, tapRootPubKeyHex)
 	}
 	fmt.Println("||||||||||||||||||||||||")
 
-	fmt.Println("========================")
-	for i, in := range p.Inputs {
-		fmt.Printf("in %v: %+v \n", i, *in.WitnessUtxo)
-	}
-	fmt.Println("========================")
+	fmt.Println("======================")
+	// An attempt to get the public key from the P2TR PkScript
+	for i, out := range p.UnsignedTx.TxOut {
+		pkScriptHex := hex.EncodeToString(out.PkScript)
 
-	fmt.Println("========================")
-	for i, out := range p.Outputs {
-		fmt.Printf("out %v: %+v \n", i, out)
+		fmt.Printf("out: %v: PkScript %+v \n", i, out.PkScript)
+		fmt.Printf("out: %v: PkScriptHex %+v \n", i, pkScriptHex)
+
+		address, err := bech32m.SegwitAddrEncode("bc", 0x01, out.PkScript[2:])
+		if err != nil {
+			c.Logger().Errorf("Failed convert PkScript to Segwit: %v", err)
+		}
+		fmt.Printf("out: %v: Address %+v \n", i, address)
+
+		//
+		//fmt.Println(pkScriptHex)
+		//fmt.Println(len(pkScriptHex))
+		//
+		//// Check if the PkScript is valid and extract the public key
+		//if strings.HasPrefix(pkScriptHex, "51") && len(pkScriptHex[2:]) == 66 {
+		//	pubKey := out.PkScript[2:]
+		//	// Convert the public key into a bech32m encoded Taproot address
+		//	address := bech32m.Encode("bc", pubKey, 2)
+		//	fmt.Println("Taproot Address:", address)
+		//} else {
+		//	fmt.Println("Invalid PkScript")
+		//}
+
+		//tapRootPubKey, err := extractTaprootPublicKey(out.PkScript)
+		//if err != nil {
+		//	c.Logger().Errorf("Failed to extract taproot addr: %v", err)
+		//}
+		//
+		//bech32mPubKey := convertTo5bit(tapRootPubKey)
+		//segwit, err := bech32.Encode("bc", bech32mPubKey)
+		//if err != nil {
+		//	c.Logger().Errorf("Failed to bech32m endcode taproot pubkey: %v", err)
+		//}
+
+		//fmt.Println(len(out.PkScript))
+		//segwit, err := PkScriptToTaprootAddress(out.PkScript[2:])
+		//if err != nil {
+		//	c.Logger().Errorf("Failed to bech32m endcode taproot pubkey: %v", err)
+		//}
+		//
+		//fmt.Printf("out %v: %+v \n", i, segwit)
 	}
-	fmt.Println("========================")
+
+	fmt.Println("======================")
+
+	//fmt.Println("========================")
+	//for i, in := range p.Inputs {
+	//	fmt.Printf("in %v: %+v \n", i, *in.WitnessUtxo)
+	//}
+	//fmt.Println("========================")
+	//
+	//fmt.Println("========================")
+	//for i, out := range p.Outputs {
+	//	fmt.Printf("out %v: %+v \n", i, out)
+	//}
+	//fmt.Println("========================")
 
 	return c.JSON(http.StatusOK, nil)
 }
 
-//func extractTaprootPublicKey(pkScript []byte) ([]byte, error) {
-//	// Check that the script is the correct length for P2TR (1-byte version + 32-byte key)
-//	if len(pkScript) != 33 {
-//		return nil, fmt.Errorf("invalid pkScript length for P2TR")
-//	}
-//
-//	// Check that the version byte is 0x50 (indicating P2TR)
-//	if pkScript[0] != 0x50 {
-//		return nil, fmt.Errorf("invalid version byte for P2TR")
-//	}
-//
-//	// The remaining 32 bytes are the taproot public key
-//	return pkScript[1:], nil
-//}
-
-func extractTaprootPublicKey(pkScript []byte) ([]byte, error) {
+func extractTaprootPublicKey(pkScript []byte) ([32]byte, error) {
 	// Check that the script is the correct length for P2TR (1-byte version + 1-byte length + 32-byte key)
 	if len(pkScript) != 34 {
-		return nil, fmt.Errorf("invalid pkScript length for P2TR")
+		return [32]byte{}, fmt.Errorf("invalid pkScript length for P2TR")
 	}
 
 	// Check that the version byte is 0x51 (indicating P2TR)
 	if pkScript[0] != 0x51 {
-		return nil, fmt.Errorf("invalid version byte for P2TR")
+		return [32]byte{}, fmt.Errorf("invalid version byte for P2TR")
 	}
 
 	// Check that the length byte is 0x20 (indicating 32 bytes)
 	if pkScript[1] != 0x20 {
-		return nil, fmt.Errorf("invalid length byte for P2TR public key")
+		return [32]byte{}, fmt.Errorf("invalid length byte for P2TR public key")
+	}
+
+	byte32TaprootPubKey, err := convertTo32ByteArray(pkScript[2:])
+	if err != nil {
+		return [32]byte{}, err
 	}
 
 	// The remaining 32 bytes are the taproot public key
-	return pkScript[2:], nil
+	return byte32TaprootPubKey, nil
 }
 
 func extractTaprootPublicKeyHex(pkScript []byte) (string, error) {
@@ -125,3 +180,50 @@ func extractTaprootPublicKeyHex(pkScript []byte) (string, error) {
 	pubKeyHex := hex.EncodeToString(pkScript[2:])
 	return pubKeyHex, nil
 }
+
+//func convertTo5bit(data [32]byte) []byte {
+//	var bit5Data []byte
+//	var currentByte byte
+//	var nextByte byte
+//	var bit5Value byte
+//
+//	for i := 0; i < 32; i++ {
+//		currentByte = data[i]
+//		if i < 31 {
+//			nextByte = data[i+1]
+//		}
+//
+//		for j := 0; j < 8; j += 5 {
+//			if j == 0 {
+//				bit5Value = currentByte >> 3
+//			} else {
+//				bit5Value = (currentByte << (j - 3)) | (nextByte >> (8 - j + 3))
+//				bit5Value = bit5Value & 0x1F // mask to keep only 5 bits
+//			}
+//			bit5Data = append(bit5Data, bit5Value)
+//		}
+//	}
+//
+//	return bit5Data[:64] // the result should have 64 5-bit values
+//}
+
+// bc17n7x3dddfethuu974vrlcre9t5y4tsxjkyx0e74c95xw5xn74p0x3gy8uave00lm0pmw05
+// bc17n7x3dddfethuu974vrlcre9t5y4tsxjkyx0e74c95xw5xn74p0x3gy8uave00lm6atz2k
+// bc1p5pvvfjtnhl32llttswchrtyd9mdzd3p7yps98tlydh2dm6zj6gqsfkmcnd
+
+// bc1p7ncck66wthnjl2clcry46f2uxjcn8naw95e6r8ag0x9zremx00lyklxy8
+
+// bc1p5pvvfjtnhl32llttswchrtyd9mdzd3p7yps98tlydh2dm6zj6gqsfkmcnd
+// bc1p7ncck66wthnjl2clcry46f2uxjcn8naw95e6r8ag0x9zremx00lqvf5wve
+
+// bc1ptjazy7wun2vc2v9ylep70rxm7aunu5m3cfu80w7284fkfa9urlrqg07a7m
+// bc1ptjazy7wun2vc2v9ylep70rxm7aunu5m3cfu80w7284fkfa9urlr67w3g8
+// bc1ptjazy7wun2vc2v9ylep70rxm7aunu5m3cfu80w7284fkfa9urlr0z7ad9
+// bc1ptjazy7wun2vc2v9ylep70rxm7aunu5m3cfu80w7284fkfa9urlr67w3g8
+
+// bc1ptjazy7wun2vc2v9ylep70rxm7aunu5m3cfu80w7284fkfa9urlrqg07a7m
+// bc1pkd2uverm5mhsajccxezu26t303g4wgjgqsls69qp2pxddpfqug9qv9x66m
+// bc1pwjj8u3np4pw0edaq286ahdwhx9kerueah22apuj7vdfjc8crjq3qn9fy2x
+
+// bc1ptjazy7wun2vc2v9ylep70rxm7aunu5m3cfu80w7284fkfa9urlrqg07a7m
+// this is the house fee addr, we need to decode out 2 to this somehow
