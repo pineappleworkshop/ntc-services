@@ -92,10 +92,9 @@ func (bis *BestInSlot) GetInscriptionsByWalletAddr(c echo.Context, addr string, 
 
 func (bis *BestInSlot) GetInscriptionById(c echo.Context, id string) (*models.BisInscriptions, error) {
 	// TODO: Implement limit, note: BIS supports incrementals of 20
-	// /v3/inscription/single_info_id?inscription_id=${ixId}
 	url := fmt.Sprintf(
 		"%s%s",
-		"/v3/inscription/single_info_id?inscription_id=",
+		"/inscription/single_info_id?inscription_id=",
 		id,
 	)
 
@@ -105,7 +104,6 @@ func (bis *BestInSlot) GetInscriptionById(c echo.Context, id string) (*models.Bi
 		c.Logger().Error(err.Error())
 		return nil, err
 	}
-	fmt.Println("resp: ", resp)
 
 	var inscriptions *models.BisInscriptions
 	if err := json.Unmarshal(resp, &inscriptions); err != nil {
@@ -165,8 +163,7 @@ func (bis *BestInSlot) getV3(endpoint string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	req.Header.Set("x-api-key", fmt.Sprintf("Bearer %s", bis.APIKey))
+	req.Header.Set("x-api-key", bis.APIKey)
 	resp, err := bis.Client.Do(req)
 	if err != nil {
 		return nil, err
