@@ -46,6 +46,7 @@ package services
 //	txhash, _ := chainhash.NewHashFromStr("5f716ed311546173bb11f3c13c1b3b42ac4405126005467d6db1659b568fcc7e")
 //	outpoint := wire.NewOutPoint(txhash, 1)
 //	inputs := []*wire.OutPoint{outpoint}
+//
 //	pubkeyScript, _ := hex.DecodeString("0014270fc4df148c514fbc5551875e4ec3738bc63639")
 //	spendTxOut := wire.NewTxOut(100000, pubkeyScript)
 //
