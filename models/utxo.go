@@ -9,4 +9,5 @@ type UTXO struct {
 	ValueHex        string  `json:"value_hex" bson:"value_hex"`
 	Confirmations   int64   `json:"confirmations" bson:"confirmations"`
 	TxIndex         float64 `json:"tx_index" bson:"tx_index"`
+	IsInscription   bool    `json:"is_inscription" bson:"is_inscription"`
 }

@@ -1,0 +1,345 @@
+{
+  "UnsignedTx": {
+    "Version": 2,
+    "TxIn": [
+      {
+        "PreviousOutPoint": {
+          "Hash": [
+            211,
+            228,
+            160,
+            247,
+            162,
+            187,
+            85,
+            101,
+            238,
+            209,
+            228,
+            166,
+            166,
+            14,
+            178,
+            239,
+            124,
+            242,
+            35,
+            92,
+            106,
+            177,
+            227,
+            141,
+            61,
+            143,
+            244,
+            11,
+            245,
+            47,
+            233,
+            183
+          ],
+          "Index": 0
+        },
+        "SignatureScript": "",
+        "Witness": null,
+        "Sequence": 4294967295
+      },
+      {
+        "PreviousOutPoint": {
+          "Hash": [
+            48,
+            192,
+            66,
+            24,
+            72,
+            205,
+            241,
+            252,
+            30,
+            1,
+            68,
+            20,
+            158,
+            132,
+            161,
+            49,
+            121,
+            246,
+            23,
+            231,
+            109,
+            211,
+            7,
+            91,
+            86,
+            171,
+            241,
+            158,
+            98,
+            219,
+            170,
+            23
+          ],
+          "Index": 3
+        },
+        "SignatureScript": "",
+        "Witness": null,
+        "Sequence": 4294967295
+      },
+      {
+        "PreviousOutPoint": {
+          "Hash": [
+            95,
+            132,
+            166,
+            124,
+            201,
+            95,
+            37,
+            220,
+            32,
+            194,
+            196,
+            41,
+            182,
+            177,
+            239,
+            218,
+            138,
+            190,
+            164,
+            35,
+            200,
+            2,
+            17,
+            5,
+            241,
+            36,
+            114,
+            182,
+            205,
+            66,
+            223,
+            217
+          ],
+          "Index": 2
+        },
+        "SignatureScript": "",
+        "Witness": null,
+        "Sequence": 4294967295
+      },
+      {
+        "PreviousOutPoint": {
+          "Hash": [
+            118,
+            77,
+            87,
+            86,
+            159,
+            104,
+            140,
+            4,
+            74,
+            126,
+            176,
+            214,
+            241,
+            96,
+            228,
+            228,
+            242,
+            154,
+            87,
+            40,
+            168,
+            3,
+            53,
+            142,
+            92,
+            56,
+            85,
+            14,
+            75,
+            106,
+            152,
+            96
+          ],
+          "Index": 0
+        },
+        "SignatureScript": "",
+        "Witness": null,
+        "Sequence": 4294967295
+      }
+    ],
+    "TxOut": [
+      {
+        "Value": 546,
+        "PkScript": "USDtw4INzfBleRwmkJY/oWhV3RiFOAi1ggDs0SytPUJmhA=="
+      },
+      {
+        "Value": 100000,
+        "PkScript": "USA+ESLel/eTvJwlD2FHW9DXbDe9ZOgOQYKuFWuLNwSXCg=="
+      },
+      {
+        "Value": 1000,
+        "PkScript": "USCvl99W+P3HRgq3fmgIbnWfC8Ig/1pkvnZuJPXLFJ+qjw=="
+      },
+      {
+        "Value": 796797,
+        "PkScript": "USDtw4INzfBleRwmkJY/oWhV3RiFOAi1ggDs0SytPUJmhA=="
+      },
+      {
+        "Value": 287682,
+        "PkScript": "USDtw4INzfBleRwmkJY/oWhV3RiFOAi1ggDs0SytPUJmhA=="
+      },
+      {
+        "Value": 6927,
+        "PkScript": "USA+ESLel/eTvJwlD2FHW9DXbDe9ZOgOQYKuFWuLNwSXCg=="
+      }
+    ],
+    "LockTime": 0
+  },
+  "Inputs": [
+    {
+      "NonWitnessUtxo": null,
+      "WitnessUtxo": {
+        "Value": 546,
+        "PkScript": "USA+ESLel/eTvJwlD2FHW9DXbDe9ZOgOQYKuFWuLNwSXCg=="
+      },
+      "PartialSigs": null,
+      "SighashType": 0,
+      "RedeemScript": null,
+      "WitnessScript": null,
+      "Bip32Derivation": null,
+      "FinalScriptSig": null,
+      "FinalScriptWitness": null,
+      "TaprootKeySpendSig": null,
+      "TaprootScriptSpendSig": null,
+      "TaprootLeafScript": null,
+      "TaprootBip32Derivation": null,
+      "TaprootInternalKey": null,
+      "TaprootMerkleRoot": null,
+      "Unknowns": null
+    },
+    {
+      "NonWitnessUtxo": null,
+      "WitnessUtxo": {
+        "Value": 896797,
+        "PkScript": "USDtw4INzfBleRwmkJY/oWhV3RiFOAi1ggDs0SytPUJmhA=="
+      },
+      "PartialSigs": null,
+      "SighashType": 0,
+      "RedeemScript": null,
+      "WitnessScript": null,
+      "Bip32Derivation": null,
+      "FinalScriptSig": null,
+      "FinalScriptWitness": "AUCKZYS0csj2I9oj3udXHRdnoBxe9AlY7LneMQY3QshX2P9vZ7HaO2FusfqzaiEX0xcgx2urcPZTV+WKIWcz0nTn",
+      "TaprootKeySpendSig": null,
+      "TaprootScriptSpendSig": null,
+      "TaprootLeafScript": null,
+      "TaprootBip32Derivation": null,
+      "TaprootInternalKey": null,
+      "TaprootMerkleRoot": null,
+      "Unknowns": null
+    },
+    {
+      "NonWitnessUtxo": null,
+      "WitnessUtxo": {
+        "Value": 290755,
+        "PkScript": "USDtw4INzfBleRwmkJY/oWhV3RiFOAi1ggDs0SytPUJmhA=="
+      },
+      "PartialSigs": null,
+      "SighashType": 0,
+      "RedeemScript": null,
+      "WitnessScript": null,
+      "Bip32Derivation": null,
+      "FinalScriptSig": null,
+      "FinalScriptWitness": "AUCULiwu/f5orhaL1cA/0hAWQ3XuHdSRD0W7RIKIiBsSTUdtgAE41BjLuiwZwliuvRjUxpnYLCFGsmqziRJg4Itp",
+      "TaprootKeySpendSig": null,
+      "TaprootScriptSpendSig": null,
+      "TaprootLeafScript": null,
+      "TaprootBip32Derivation": null,
+      "TaprootInternalKey": null,
+      "TaprootMerkleRoot": null,
+      "Unknowns": null
+    },
+    {
+      "NonWitnessUtxo": null,
+      "WitnessUtxo": {
+        "Value": 10000,
+        "PkScript": "USA+ESLel/eTvJwlD2FHW9DXbDe9ZOgOQYKuFWuLNwSXCg=="
+      },
+      "PartialSigs": null,
+      "SighashType": 0,
+      "RedeemScript": null,
+      "WitnessScript": null,
+      "Bip32Derivation": null,
+      "FinalScriptSig": null,
+      "FinalScriptWitness": null,
+      "TaprootKeySpendSig": null,
+      "TaprootScriptSpendSig": null,
+      "TaprootLeafScript": null,
+      "TaprootBip32Derivation": null,
+      "TaprootInternalKey": null,
+      "TaprootMerkleRoot": null,
+      "Unknowns": null
+    }
+  ],
+  "Outputs": [
+    {
+      "RedeemScript": null,
+      "WitnessScript": null,
+      "Bip32Derivation": null,
+      "TaprootInternalKey": null,
+      "TaprootTapTree": null,
+      "TaprootBip32Derivation": null,
+      "Unknowns": null
+    },
+    {
+      "RedeemScript": null,
+      "WitnessScript": null,
+      "Bip32Derivation": null,
+      "TaprootInternalKey": null,
+      "TaprootTapTree": null,
+      "TaprootBip32Derivation": null,
+      "Unknowns": null
+    },
+    {
+      "RedeemScript": null,
+      "WitnessScript": null,
+      "Bip32Derivation": null,
+      "TaprootInternalKey": null,
+      "TaprootTapTree": null,
+      "TaprootBip32Derivation": null,
+      "Unknowns": null
+    },
+    {
+      "RedeemScript": null,
+      "WitnessScript": null,
+      "Bip32Derivation": null,
+      "TaprootInternalKey": null,
+      "TaprootTapTree": null,
+      "TaprootBip32Derivation": null,
+      "Unknowns": null
+    },
+    {
+      "RedeemScript": null,
+      "WitnessScript": null,
+      "Bip32Derivation": null,
+      "TaprootInternalKey": null,
+      "TaprootTapTree": null,
+      "TaprootBip32Derivation": null,
+      "Unknowns": null
+    },
+    {
+      "RedeemScript": null,
+      "WitnessScript": null,
+      "Bip32Derivation": null,
+      "TaprootInternalKey": null,
+      "TaprootTapTree": null,
+      "TaprootBip32Derivation": null,
+      "Unknowns": null
+    }
+  ],
+  "Unknowns": null
+}

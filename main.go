@@ -76,4 +76,5 @@ func initPublicRoutes(e *echo.Echo) {
 	// experiments
 	e.GET("/experiments/from-unsigned-tx", handlers.PSBTFromUnsignedTx)
 	e.GET("/experiments/psbt", handlers.GeneratePSBT)
+	e.GET("/experiments/utxos", handlers.UTXOs)
 }
