@@ -12,13 +12,15 @@ import (
 )
 
 type Wallet struct {
-	ID           primitive.ObjectID `json:"id" bson:"_id"`
-	Type         string             `json:"wallet_type" bson:"wallet_type"`
-	CardinalAddr string             `json:"cardinal_addr" bson:"cardinal_addr"`
-	TapRootAddr  string             `json:"tap_root_addr" bson:"tap_root_addr"`
-	SegwitAddr   string             `json:"segwit_addr" bson:"segwit_addr"`
-	CreatedAt    int64              `json:"created_at" bson:"created_at"`
-	UpdatedAt    *int64             `json:"updated_at" bson:"updated_at"`
+	ID                 primitive.ObjectID `json:"id" bson:"_id"`
+	Type               string             `json:"wallet_type" bson:"wallet_type"`
+	CardinalAddr       string             `json:"cardinal_addr" bson:"cardinal_addr"`
+	TapRootAddr        string             `json:"tap_root_addr" bson:"tap_root_addr"`
+	SegwitAddr         string             `json:"segwit_addr" bson:"segwit_addr"`
+	CreatedAt          int64              `json:"created_at" bson:"created_at"`
+	UpdatedAt          *int64             `json:"updated_at" bson:"updated_at"`
+	LastConnectedAt    *int64             `json:"last_connected_at" bson:"last_connected_at"`
+	LastConnectedBlock *int64             `json:"last_connected_block" bson:"last_connected_block"`
 }
 
 func NewWallet() *Wallet {
@@ -31,7 +33,7 @@ func NewWallet() *Wallet {
 
 func IsValidWalletType(walletType string) bool {
 	switch walletType {
-	case "cardinal", "taproot", "segwit":
+	case "hiro", "xverse", "unisat":
 		return true
 	default:
 		return false
@@ -49,9 +51,9 @@ func (w *Wallet) Save() error {
 }
 
 func (w *Wallet) Update() error {
-	currentTime := time.Now().UTC().Unix()
+	now := time.Now().UTC().Unix()
 
-	w.UpdatedAt = &currentTime
+	w.UpdatedAt = &now
 	collection := stores.DB.Mongo.Client.Database(stores.DB_NAME).Collection(stores.DB_COLLECTION_WALLETS)
 	if _, err := collection.ReplaceOne(context.TODO(), bson.M{"_id": w.ID}, w); err != nil {
 		return err
@@ -76,15 +78,17 @@ func GetWalletByID(id string) (*Wallet, error) {
 	return wallet, nil
 }
 
-func GetWalletByAddr(addr, addrType string) (*Wallet, error) {
+func GetWalletByAddr(tapRootAddr, segwitAddr, addrType string) (*Wallet, error) {
 	filter := bson.M{}
 	switch addrType {
-	case "cardinal":
-		filter["cardinal_addr"] = addr
-	case "taproot":
-		filter["tap_root_addr"] = addr
-	case "segwit":
-		filter["segwit_addr"] = addr
+	case "hiro":
+		filter["tap_root_addr"] = tapRootAddr
+		filter["segwit_addr"] = segwitAddr
+	case "xverse":
+		filter["tap_root_addr"] = tapRootAddr
+		filter["segwit_addr"] = segwitAddr
+	case "unisat":
+		filter["segwit_addr"] = segwitAddr
 	default:
 		return nil, fmt.Errorf("invalid address type: %s", addrType)
 	}
