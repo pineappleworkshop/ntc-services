@@ -1,8 +1,11 @@
 package services
 
 import (
+	"github.com/labstack/echo/v4"
+	"net/http/httptest"
 	"ntc-services/config"
 	"ntc-services/models"
+	"strings"
 	"time"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
@@ -63,13 +66,18 @@ func NewTradeWatcher() (*TradeWatcher, error) {
 }
 
 func (tw *TradeWatcher) Run() {
+	e := echo.New()
+	req := httptest.NewRequest(echo.GET, "/", strings.NewReader(""))
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
 	go tw.Poll()
 
 	for {
 		for txId, t := range tw.Trades {
 			log.Infof("Watching Trade: %+v", txId)
 
-			trade, err := models.GetTradeByID(t.ID.Hex())
+			trade, err := models.GetTradeByID(c, t.ID.Hex())
 			if err != nil {
 				log.Error(err)
 				continue
@@ -83,7 +91,7 @@ func (tw *TradeWatcher) Run() {
 				if mempoolEntry != nil {
 					log.Infof("Trade in Mempool: %+v", txId)
 					trade.Status = "MEMPOOL"
-					if err := trade.Update(); err != nil {
+					if err := trade.Update(c); err != nil {
 						log.Error(err)
 					}
 					continue
@@ -107,7 +115,7 @@ func (tw *TradeWatcher) Run() {
 								log.Infof("Trade Confirmed: %+v", txId)
 
 								trade.Status = "CONFIRMED"
-								if err := trade.Update(); err != nil {
+								if err := trade.Update(c); err != nil {
 									log.Error(err)
 								}
 								delete(tw.Trades, txId)
@@ -115,7 +123,7 @@ func (tw *TradeWatcher) Run() {
 								log.Infof("Trade Failed: %+v", txId)
 
 								trade.Status = "FAILED"
-								if err := trade.Update(); err != nil {
+								if err := trade.Update(c); err != nil {
 									log.Error(err)
 								}
 								delete(tw.Trades, txId)
@@ -124,7 +132,7 @@ func (tw *TradeWatcher) Run() {
 							log.Infof("Trade Failed: %+v", txId)
 
 							trade.Status = "FAILED"
-							if err := trade.Update(); err != nil {
+							if err := trade.Update(c); err != nil {
 								log.Error(err)
 							}
 							delete(tw.Trades, txId)
@@ -139,8 +147,13 @@ func (tw *TradeWatcher) Run() {
 }
 
 func (tw *TradeWatcher) Poll() {
+	e := echo.New()
+	req := httptest.NewRequest(echo.GET, "/", strings.NewReader(""))
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
 	for {
-		trades, err := models.GetTradesByStatus("SUBMITTED")
+		trades, err := models.GetTradesByStatus(c, "SUBMITTED")
 		if err != nil {
 			log.Error(err)
 		}

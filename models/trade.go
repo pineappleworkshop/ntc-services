@@ -2,6 +2,7 @@ package models
 
 import (
 	"context"
+	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"ntc-services/stores"
@@ -38,38 +39,52 @@ func NewTrade(makerID primitive.ObjectID) *Trade {
 	}
 }
 
-func (t *Trade) Update() error {
-	now := time.Now().Unix()
-	t.UpdatedAt = &now
-
+func (t *Trade) Create(c echo.Context) error {
 	collection := stores.DB.Mongo.Client.Database(stores.DB_NAME).Collection(stores.DB_COLLECTION_TRADES)
-	if _, err := collection.ReplaceOne(context.TODO(), bson.M{"_id": t.ID}, t); err != nil {
+	if _, err := collection.InsertOne(context.TODO(), t); err != nil {
+		c.Logger().Error(err)
 		return err
 	}
 
 	return nil
 }
 
-func GetTradesByStatus(status string) ([]*Trade, error) {
+func (t *Trade) Update(c echo.Context) error {
+	now := time.Now().Unix()
+	t.UpdatedAt = &now
+
+	collection := stores.DB.Mongo.Client.Database(stores.DB_NAME).Collection(stores.DB_COLLECTION_TRADES)
+	if _, err := collection.ReplaceOne(context.TODO(), bson.M{"_id": t.ID}, t); err != nil {
+		c.Logger().Error(err)
+		return err
+	}
+
+	return nil
+}
+
+func GetTradesByStatus(c echo.Context, status string) ([]*Trade, error) {
 	filter := bson.M{"status": status}
 	collection := stores.DB.Mongo.Client.Database(stores.DB_NAME).Collection(stores.DB_COLLECTION_TRADES)
 
 	cursor, err := collection.Find(context.TODO(), filter)
 	if err != nil {
+		c.Logger().Error(err)
 		return nil, err
 	}
 
 	var trades []*Trade
 	if err := cursor.All(context.TODO(), &trades); err != nil {
+		c.Logger().Error(err)
 		return nil, err
 	}
 
 	return trades, nil
 }
 
-func GetTradeByID(idStr string) (*Trade, error) {
+func GetTradeByID(c echo.Context, idStr string) (*Trade, error) {
 	id, err := primitive.ObjectIDFromHex(idStr)
 	if err != nil {
+		c.Logger().Error(err)
 		return nil, err
 	}
 	filter := bson.M{"_id": id}
@@ -77,6 +92,7 @@ func GetTradeByID(idStr string) (*Trade, error) {
 
 	var trade *Trade
 	if err := collection.FindOne(context.TODO(), filter).Decode(&trade); err != nil {
+		c.Logger().Error(err)
 		return nil, err
 	}
 

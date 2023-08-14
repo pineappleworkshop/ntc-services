@@ -56,6 +56,20 @@ func initPublicRoutes(e *echo.Echo) {
 	e.GET("/addresses/:addr/inscriptions", handlers.GetInscriptions)
 	e.GET("/addresses/:addr/brc20s", handlers.GetBRC20s)
 
+	// wallets
+	e.POST("/wallets", handlers.PostWallets)
+	//e.GET("/wallets/:id/inscriptions", handlers.GetInscriptions) // TODO: implement
+	//e.GET("/wallets/:id/brc20s", handlers.GetBRC20s)			   // TODO: implement
+
+	// trades
+	e.POST("/trades", handlers.PostTrades)
+	e.POST("/trades/:id/maker", handlers.PostMakerByTradeID)
+	e.GET("/trades", handlers.GetTrades)
+	e.POST("/trades/:id/offers", handlers.PostOfferByTradeID)
+	e.GET("/trades/:id/offers", handlers.GetOffersByTradeID)
+	e.POST("/trades/:id/orders/accept", handlers.PostAcceptOfferByTradeID)
+	e.POST("/trades/:id/submit", handlers.PostSubmitTradeByID)
+
 	// ordex inscription testing api
 	e.GET("/ordex/inscription/:id", handlers.OrdexHandler)
 }
