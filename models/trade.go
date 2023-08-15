@@ -17,6 +17,7 @@ type Trade struct {
 	Taker           *Side               `json:"taker" bson:"take-"`
 	PSBT            *string             `json:"psbt" bson:"psbt"`
 	FeeRate         *FeeRate            `json:"fee_rate" bson:"fee_rate"`
+	MaxFee          int32               `json:"max_fee" bson:"max_fee"`
 	PlatformFee     *int64              `json:"platform_fee" bson:"platform_fee"`
 	TxID            *string             `json:"txId" bson:"txId"`
 	Status          string              `json:"status" bson:"status"`
