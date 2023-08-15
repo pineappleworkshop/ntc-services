@@ -59,7 +59,7 @@ func PostWallets(c echo.Context) error {
 	return c.JSON(http.StatusCreated, wallet)
 }
 
-func GetWalletsByAddr(c echo.Context) error {
+func GetWalletByAddr(c echo.Context) error {
 	addr := c.Param("addr")
 	addrType, err := models.GetAddressType(addr)
 	if err != nil {

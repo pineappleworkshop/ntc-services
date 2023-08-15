@@ -2,11 +2,12 @@ package models
 
 import (
 	"context"
+	"ntc-services/stores"
+	"time"
+
 	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"ntc-services/stores"
-	"time"
 )
 
 type Side struct {
@@ -50,4 +51,20 @@ func (s *Side) Update(c echo.Context) error {
 	}
 
 	return nil
+}
+
+func GetSideByID(id string) (*Side, error) {
+	idHex, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+	collection := stores.DB.Mongo.Client.Database(stores.DB_NAME).Collection(stores.DB_COLLECTION_SIDES)
+	filter := bson.M{"_id": idHex}
+	result := collection.FindOne(context.TODO(), filter)
+	var side *Side
+	if err := result.Decode(&side); err != nil {
+		return nil, err
+	}
+
+	return side, nil
 }

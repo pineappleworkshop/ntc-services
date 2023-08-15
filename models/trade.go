@@ -10,6 +10,18 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+type TradeReqBody struct {
+	WalletType  string `json:"wallet_type" bson:"wallet_type"`
+	TapRootAddr string `json:"tap_root_addr" bson:"tap_root_addr"`
+	SegwitAddr  string `json:"segwit_addr" bson:"segwit_addr"`
+}
+
+type TradeMakerReqBody struct {
+	WalletID           string   `json:"wallet_id" bson:"wallet_id"`
+	Btc                int64    `json:"btc" bson:"btc"`
+	InscriptionNumbers []string `json:"inscription_numbers" bson:"inscription_numbers"`
+}
+
 type Trade struct {
 	ID              primitive.ObjectID  `json:"id" bson:"_id"`
 	MakerID         primitive.ObjectID  `json:"maker_id" bson:"maker_id"`
@@ -31,6 +43,14 @@ type FeeRate struct {
 	Value int32  `json:"value" bson:"value"`
 }
 
+func NewTradeReqBody() *TradeReqBody {
+
+	return &TradeReqBody{}
+}
+func NewTradeMakerReqBody() *TradeMakerReqBody {
+
+	return &TradeMakerReqBody{}
+}
 func NewTrade(makerID primitive.ObjectID) *Trade {
 	return &Trade{
 		ID:        primitive.NewObjectID(),

@@ -1,8 +1,11 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"ntc-services/models"
+	"ntc-services/services"
+	"ntc-services/stores"
 
 	"github.com/labstack/echo/v4"
 )
@@ -16,50 +19,38 @@ import (
   "taproot_addr": "addr | nil",
   "segwit_addr": "addr | nil"
 }
- OR just a wallet addr?
- {
-	"addr": a taproot or segwit addr string
- }
 */
 
 func PostTrades(c echo.Context) error {
-	addr := models.NewAddr()
-	if err := c.Bind(addr); err != nil {
+	// TODO: find & verify wallet
+	tradeReqBody := models.NewTradeReqBody()
+	if err := c.Bind(tradeReqBody); err != nil {
 		c.Logger().Error(err.Error())
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
-	addrType, err := models.GetAddressType(addr.Addr)
+	wallet, err := models.GetWalletByAddrAndWalletType(tradeReqBody.TapRootAddr, tradeReqBody.SegwitAddr, tradeReqBody.WalletType)
 	if err != nil {
 		c.Logger().Error(err)
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
-	addr.AddrType = addrType
-	wallet, err := models.GetWalletByAddr(addr.Addr, addr.AddrType)
-	if err != nil {
-		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, err.Error())
-	}
+
 	if wallet == nil {
 		wallet = models.NewWallet()
-		if addrType == models.ADDRESS_SEGWIT {
-			wallet.SegwitAddr = addr.Addr
-		} else if addrType == models.ADDRESS_TAPROOT {
-			wallet.TapRootAddr = addr.Addr
-		} else {
-			c.Logger().Error("Invalid Address")
-			return c.JSON(http.StatusNotFound, "Invalid Address")
-		}
+		wallet.TapRootAddr = tradeReqBody.TapRootAddr
+		wallet.SegwitAddr = tradeReqBody.SegwitAddr
 		if err := wallet.Save(); err != nil {
 			c.Logger().Error(err)
 			return c.JSON(http.StatusInternalServerError, err.Error())
 		}
 	}
+	// TODO: create side & store
 	side := models.NewSide(wallet.ID)
 	if err := side.Create(c); err != nil {
 		c.Logger().Error(err)
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
-	trade := models.NewTrade(wallet.ID)
+	// TODO: create trade & store
+	trade := models.NewTrade(side.ID)
 	trade.Maker = side
 	if err := trade.Create(c); err != nil {
 		c.Logger().Error(err)
@@ -78,15 +69,65 @@ func PostTrades(c echo.Context) error {
 */
 
 func PostMakerByTradeID(c echo.Context) error {
+	tradeID := c.Param("id")
 
 	// TODO: find & verify wallet
+	tradeMakerReqBody := models.NewTradeMakerReqBody()
+	if err := c.Bind(tradeMakerReqBody); err != nil {
+		c.Logger().Error(err.Error())
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+	wallet, err := models.GetWalletByID(tradeMakerReqBody.WalletID)
+	if err != nil {
+		if err.Error() == stores.MONGO_ERR_NOT_FOUND {
+			c.Logger().Error(err)
+			return c.JSON(http.StatusNotFound, err.Error())
+		}
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
 	// TODO: find trade and ensure in correct state (CREATED)
+	trade, err := models.GetTradeByID(c, tradeID)
+	if err != nil {
+		if err.Error() == stores.MONGO_ERR_NOT_FOUND {
+			c.Logger().Error(err)
+			return c.JSON(http.StatusNotFound, err.Error())
+		}
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
 	// TODO: find side and ensure requester is correct by wallet_id (and perhaps more)
+	maker, err := models.GetSideByID(trade.MakerID.Hex())
+	if err != nil {
+		if err.Error() == stores.MONGO_ERR_NOT_FOUND {
+			c.Logger().Error(err)
+			return c.JSON(http.StatusNotFound, err.Error())
+		}
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+	if maker.WalletID != wallet.ID {
+		c.Logger().Error("Maker Wallet does not match Wallet ID")
+		return c.JSON(http.StatusConflict, "Maker Wallet does not match Wallet ID")
+	}
 	// TODO: query ordex for extra inscription information (floor price, previous tx, more...)
+	for _, value := range tradeMakerReqBody.InscriptionNumbers {
+		inscription, err := services.BESTINSLOT.GetInscriptionById(c, value)
+		if err != nil {
+			c.Logger().Error(err)
+			return c.JSON(http.StatusInternalServerError, err)
+		}
+		fmt.Printf("inscription: %+v\n", inscription)
+	}
+
 	// TODO: validate that assets still belong to maker wallet
 	// TODO: update side
-
-	return c.JSON(http.StatusCreated, nil)
+	maker.BTC = tradeMakerReqBody.Btc
+	if err := maker.Update(c); err != nil {
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+	return c.JSON(http.StatusCreated, maker)
 }
 
 /* Query Params
