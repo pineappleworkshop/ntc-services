@@ -63,7 +63,7 @@ func NewTradeWatcher() (*TradeWatcher, error) {
 	}
 
 	// TODO: Remove commented code
-	txHash, err := chainhash.NewHashFromStr("abde020627dc40f6d39ca4db7c682a13737a0b0a900b0c0afce5b9680e93f94a")
+	txHash, err := chainhash.NewHashFromStr("57786ad9ae59f3afa6be5603248fc22c88b9d5a53685a72ec84750b47eacba5e")
 	if err != nil {
 		panic(err)
 	}
@@ -76,6 +76,11 @@ func NewTradeWatcher() (*TradeWatcher, error) {
 	if err != nil {
 		panic(err)
 	}
+	//txFee, err := packet.GetTxFee()
+	//if err != nil {
+	//	panic(err)
+	//}
+	txFee, _ := calculateMinerFeeForPSBT(tx.MsgTx(), 10.7)
 
 	txJSON, err := json.MarshalIndent(packet, "", "  ")
 	if err != nil {
@@ -84,6 +89,7 @@ func NewTradeWatcher() (*TradeWatcher, error) {
 
 	fmt.Println("************************")
 	fmt.Printf("%+v \n", string(txJSON))
+	fmt.Printf("Tx Fee: %+v \n", txFee)
 	fmt.Println("************************")
 
 	return &TradeWatcher{

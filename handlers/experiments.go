@@ -15,6 +15,7 @@ import (
 	"github.com/btcsuite/btcd/wire"
 	"github.com/labstack/echo/v4"
 	"github.com/tnakagawa/goref/bech32m"
+	"math"
 	"net/http"
 	"ntc-services/models"
 	"ntc-services/services"
@@ -395,6 +396,15 @@ func GeneratePSBT(c echo.Context) error {
 	//}
 
 	packetJSON, _ := json.MarshalIndent(packet, "", "  ")
+	fee, err := packet.GetTxFee()
+	if err != nil {
+		panic(err)
+	}
+	minerfee, err := CalculateMinerFeeForPSBT(packet.UnsignedTx, 10)
+	if err != nil {
+		panic(err)
+	}
+
 	fmt.Println("++++++++++++++++++++++++++++")
 	fmt.Printf("PSBT Base64: %s\n", base64PSBT)
 	fmt.Printf("PSBT Hash: %s\n", packet.UnsignedTx.TxHash())
@@ -404,8 +414,16 @@ func GeneratePSBT(c echo.Context) error {
 	fmt.Printf("WitnessUTXO: %+v \n", packet.Inputs[0].WitnessUtxo)
 	fmt.Printf("Sanity: %v \n", packet.SanityCheck())
 	fmt.Printf("Ready to Sign: %+v \n", psbt.InputsReadyToSign(packet))
+	fmt.Printf("PInputs: %+v \n", packet.Inputs)
+	fmt.Printf("Fee: %+v \n", fee)
+	fmt.Printf("MinerFee: %+v \n", minerfee)
 	//fmt.Printf("Signing Method: %+v \n", signMethod)
 	fmt.Println("++++++++++++++++++++++++++++")
+
+	if err != nil {
+		fmt.Printf("txFee err: %v \n", err.Error())
+		panic(err)
+	}
 
 	//witnessScript := append([]byte{0, 20}, receiverAddr.ScriptAddress()...)
 	//outputs := []*wire.TxOut{wire.NewTxOut(99500, witnessScript)}
@@ -614,4 +632,16 @@ func validateSigningMethod(in *psbt.PInput) (SignMethod, error) {
 		return 0, fmt.Errorf("unsupported script class for signing "+
 			"PSBT: %v", script.Class())
 	}
+}
+
+func CalculateMinerFeeForPSBT(tx *wire.MsgTx, feeRatePerVByte float64) (int64, error) {
+	baseSize := tx.SerializeSizeStripped()
+	totalSize := tx.SerializeSize()
+
+	weight := baseSize*3 + totalSize
+	virtualSize := int(math.Ceil(float64(weight) / 4.0))
+
+	minerFee := float64(virtualSize) * feeRatePerVByte
+
+	return int64(minerFee) + 50, nil
 }
