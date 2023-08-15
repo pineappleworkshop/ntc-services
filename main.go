@@ -56,6 +56,9 @@ func initPublicRoutes(e *echo.Echo) {
 	e.GET("/addresses/:addr/inscriptions", handlers.GetInscriptions)
 	e.GET("/addresses/:addr/brc20s", handlers.GetBRC20s)
 
+	// best in slot inscription
+	e.GET("/bestinslot/inscription/:id", handlers.GetInscriptionById)
+
 	// wallets
 	e.POST("/wallets", handlers.PostWallets)
 	e.POST("/wallets/connected", handlers.PostWalletsConnected)

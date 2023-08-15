@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/labstack/echo/v4"
 	"io/ioutil"
 	"math"
 	"net/http"
@@ -13,6 +12,8 @@ import (
 	"ntc-services/models"
 	"strconv"
 	"time"
+
+	"github.com/labstack/echo/v4"
 )
 
 type BestInSlot struct {
@@ -89,6 +90,30 @@ func (bis *BestInSlot) GetInscriptionsByWalletAddr(c echo.Context, addr string, 
 	return inscriptions, nil
 }
 
+func (bis *BestInSlot) GetInscriptionById(c echo.Context, id string) (*models.BisInscriptionsSingle, error) {
+	// TODO: Implement limit, note: BIS supports incrementals of 20
+	url := fmt.Sprintf(
+		"%s%s",
+		"/inscription/single_info_id?inscription_id=",
+		id,
+	)
+
+	resp, err := bis.getV3(url)
+	if err != nil {
+		// TODO: revist ctx tree
+		c.Logger().Error(err.Error())
+		return nil, err
+	}
+	var inscriptions *models.BisInscriptionsSingle
+	if err := json.Unmarshal(resp, &inscriptions); err != nil {
+		// TODO: revist ctx tree
+		c.Logger().Error(err.Error())
+		return nil, err
+	}
+
+	return inscriptions, nil
+}
+
 func (bis *BestInSlot) GetBRC20sByWalletAddr(c echo.Context, addr string, limit, page int64) (*models.BisBRC20s, error) {
 	url := fmt.Sprintf(
 		"/brc20/wallet_balances?address=%s", addr,
@@ -138,7 +163,7 @@ func (bis *BestInSlot) getV3(endpoint string) ([]byte, error) {
 		return nil, err
 	}
 
-	req.Header.Set("x-api-key", fmt.Sprintf("Bearer %s", bis.APIKey))
+	req.Header.Set("x-api-key", bis.APIKey)
 	resp, err := bis.Client.Do(req)
 	if err != nil {
 		return nil, err

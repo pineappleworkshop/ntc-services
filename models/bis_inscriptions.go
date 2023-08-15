@@ -5,6 +5,11 @@ type BisInscriptions struct {
 	Data        []BisInscription `json:"data"`
 }
 
+type BisInscriptionsSingle struct {
+	BlockHeight int64          `json:"block_height"`
+	Data        BisInscription `json:"data"`
+}
+
 type BisInscription struct {
 	BisURL                  string      `json:"bis_url"`
 	CollectionName          interface{} `json:"collection_name"`
