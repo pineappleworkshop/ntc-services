@@ -1,8 +1,10 @@
 package handlers
 
 import (
-	"github.com/labstack/echo/v4"
 	"net/http"
+	"ntc-services/models"
+
+	"github.com/labstack/echo/v4"
 )
 
 // TODO: Should we be using signatures to do RBAC
@@ -10,17 +12,61 @@ import (
 
 /* Request Body
 {
-  "wallet_id": "bson_id"
+  "wallet_type": "hiro" | "xverse" | "unisat",
+  "taproot_addr": "addr | nil",
+  "segwit_addr": "addr | nil"
 }
+ OR just a wallet addr?
+ {
+	"addr": a taproot or segwit addr string
+ }
 */
 
 func PostTrades(c echo.Context) error {
+	addr := models.NewAddr()
+	if err := c.Bind(addr); err != nil {
+		c.Logger().Error(err.Error())
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+	addrType, err := models.GetAddressType(addr.Addr)
+	if err != nil {
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+	addr.AddrType = addrType
+	wallet, err := models.GetWalletByAddr(addr.Addr, addr.AddrType)
+	if err != nil {
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+	if wallet == nil {
+		wallet = models.NewWallet()
+		if addrType == models.ADDRESS_SEGWIT {
+			wallet.SegwitAddr = addr.Addr
+		} else if addrType == models.ADDRESS_TAPROOT {
+			wallet.TapRootAddr = addr.Addr
+		} else {
+			c.Logger().Error("Invalid Address")
+			return c.JSON(http.StatusNotFound, "Invalid Address")
+		}
+		if err := wallet.Save(); err != nil {
+			c.Logger().Error(err)
+			return c.JSON(http.StatusInternalServerError, err.Error())
+		}
+	}
+	side := models.NewSide(wallet.ID)
+	if err := side.Create(c); err != nil {
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+	trade := models.NewTrade(wallet.ID)
+	trade.Maker = side
+	if err := trade.Create(c); err != nil {
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
 
-	// TODO: find & verify wallet
-	// TODO: create side & store
-	// TODO: create trade & store
-
-	return c.JSON(http.StatusCreated, nil) // TODO: return trade
+	return c.JSON(http.StatusCreated, trade)
 }
 
 /* Request Body

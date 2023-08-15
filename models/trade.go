@@ -2,11 +2,12 @@ package models
 
 import (
 	"context"
+	"ntc-services/stores"
+	"time"
+
 	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"ntc-services/stores"
-	"time"
 )
 
 type Trade struct {
@@ -14,7 +15,7 @@ type Trade struct {
 	MakerID         primitive.ObjectID  `json:"maker_id" bson:"maker_id"`
 	Maker           *Side               `json:"maker" bson:"-"`
 	TakerID         *primitive.ObjectID `json:"taker_id" bson:"taker_id"`
-	Taker           *Side               `json:"taker" bson:"take-"`
+	Taker           *Side               `json:"taker" bson:"-"`
 	PSBT            *string             `json:"psbt" bson:"psbt"`
 	FeeRate         *FeeRate            `json:"fee_rate" bson:"fee_rate"`
 	PlatformFee     *int64              `json:"platform_fee" bson:"platform_fee"`

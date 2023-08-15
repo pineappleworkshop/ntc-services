@@ -6,10 +6,16 @@ import (
 	"ntc-services/stores"
 	"time"
 
+	"github.com/btcsuite/btcd/btcutil"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
+
+type Address struct {
+	Addr     string `json:"addr" bson:"addr"`
+	AddrType string `json:"addr_type" bson:"addr_type"`
+}
 
 type Wallet struct {
 	ID                 primitive.ObjectID `json:"id" bson:"_id"`
@@ -29,6 +35,11 @@ func NewWallet() *Wallet {
 		ID:        primitive.NewObjectID(),
 		CreatedAt: time.Now().Unix(),
 	}
+}
+
+func NewAddr() *Address {
+
+	return &Address{}
 }
 
 func IsValidWalletType(walletType string) bool {
@@ -78,17 +89,30 @@ func GetWalletByID(id string) (*Wallet, error) {
 	return wallet, nil
 }
 
-func GetWalletByAddr(tapRootAddr, segwitAddr, addrType string) (*Wallet, error) {
+func GetWalletBy(id string) (*Wallet, error) {
+	idHex, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+	collection := stores.DB.Mongo.Client.Database(stores.DB_NAME).Collection(stores.DB_COLLECTION_WALLETS)
+	filter := bson.M{"_id": idHex}
+	result := collection.FindOne(context.TODO(), filter)
+	var wallet *Wallet
+	if err := result.Decode(&wallet); err != nil {
+		return nil, err
+	}
+
+	return wallet, nil
+}
+
+func GetWalletByAddr(addr, addrType string) (*Wallet, error) {
 	filter := bson.M{}
+
 	switch addrType {
-	case "hiro":
-		filter["tap_root_addr"] = tapRootAddr
-		filter["segwit_addr"] = segwitAddr
-	case "xverse":
-		filter["tap_root_addr"] = tapRootAddr
-		filter["segwit_addr"] = segwitAddr
-	case "unisat":
-		filter["segwit_addr"] = segwitAddr
+	case ADDRESS_SEGWIT:
+		filter["segwit_addr"] = addr
+	case ADDRESS_TAPROOT:
+		filter["tap_root_addr"] = addr
 	default:
 		return nil, fmt.Errorf("invalid address type: %s", addrType)
 	}
@@ -105,4 +129,42 @@ func GetWalletByAddr(tapRootAddr, segwitAddr, addrType string) (*Wallet, error) 
 	}
 
 	return &wallet, nil
+}
+
+// func DetectAddressType(address string) string {
+// 	if IsSegWitAddress(address) {
+// 		return ADDRESS_SEGWIT
+// 	} else if IsTaprootAddress(address) {
+// 		return ADDRESS_TAPROOT
+// 	} else {
+// 		return ADDRESS_UNKNOWN
+// 	}
+// }
+
+// func IsSegWitAddress(address string) bool {
+// 	// SegWit addresses start with "bc1" for mainnet and "tb1" for testnet
+// 	fmt.Println("IS SEG")
+// 	return strings.HasPrefix(address, "bc1") || strings.HasPrefix(address, "tb1")
+// }
+
+// func IsTaprootAddress(address string) bool {
+// 	fmt.Println("IS TAP")
+// 	// Taproot addresses start with "bcrt1" for mainnet and "tbcrt1" for testnet
+// 	return strings.HasPrefix(address, "bcrt1") || strings.HasPrefix(address, "tbcrt1")
+// }
+
+func GetAddressType(address string) (string, error) {
+	decodedAddress, err := btcutil.DecodeAddress(address, nil)
+	if err != nil {
+		return "", err
+	}
+
+	switch decodedAddress.(type) {
+	case *btcutil.AddressTaproot:
+		return ADDRESS_TAPROOT, nil
+	case *btcutil.AddressWitnessPubKeyHash:
+		return ADDRESS_SEGWIT, nil
+	default:
+		return ADDRESS_UNKNOWN, nil
+	}
 }
