@@ -56,16 +56,23 @@ func initPublicRoutes(e *echo.Echo) {
 	e.GET("/addresses/:addr/inscriptions", handlers.GetInscriptions)
 	e.GET("/addresses/:addr/brc20s", handlers.GetBRC20s)
 
+	// best in slot inscription
+	e.GET("/bestinslot/inscription/:id", handlers.GetInscriptionById)
+
 	// wallets
 	e.POST("/wallets", handlers.PostWallets)
+	e.GET("/wallets", handlers.GetWallets)
+	e.GET("/wallets/:id/assets", handlers.GetWalletByID)
+	e.GET("/wallets/:addr", handlers.GetWalletByAddr)
 	e.POST("/wallets/connected", handlers.PostWalletsConnected)
 	//e.GET("/wallets/:id/inscriptions", handlers.GetInscriptions) // TODO: implement
 	//e.GET("/wallets/:id/brc20s", handlers.GetBRC20s)			   // TODO: implement
 
 	// trades
 	e.POST("/trades", handlers.PostTrades)
-	e.POST("/trades/:id/maker", handlers.PostMakerByTradeID)
+	//e.POST("/trades/:id/maker", handlers.PostMakerByTradeID)
 	e.GET("/trades", handlers.GetTrades)
+	e.GET("/trades/:id", handlers.GetTradeByID)
 	e.POST("/trades/:id/offers", handlers.PostOfferByTradeID)
 	e.GET("/trades/:id/offers", handlers.GetOffersByTradeID)
 	e.POST("/trades/:id/orders/accept", handlers.PostAcceptOfferByTradeID)
@@ -73,4 +80,12 @@ func initPublicRoutes(e *echo.Echo) {
 
 	// ordex inscription testing api
 	e.GET("/ordex/inscription/:id", handlers.OrdexHandler)
+	e.POST("/ordex/inscriptions", handlers.OrdexGetInscriptionsByIds)
+
+	// experiments
+	e.GET("/experiments/from-unsigned-tx", handlers.PSBTFromUnsignedTx)
+	e.GET("/experiments/psbt", handlers.GeneratePSBT)
+	e.GET("/experiments/utxos", handlers.UTXOs)
+	e.GET("/experiments/broadcast", handlers.Broadcast)
+	e.GET("/experiments/keys", handlers.Keys)
 }

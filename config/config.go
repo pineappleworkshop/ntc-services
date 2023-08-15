@@ -160,6 +160,14 @@ func GetBlockChainBaseURL() (string, error) {
 	return baseURL, nil
 }
 
+func GetBlockChainInfoBaseURL() (string, error) {
+	baseURL := viper.GetString("blockchain_base_info_url")
+	if baseURL == "" {
+		return "err", errors.New("no Blockchain base URL found")
+	}
+	return baseURL, nil
+}
+
 func GetBestInSlotBaseURLV3() (string, error) {
 	baseURL := viper.GetString("bis_base_url_v3")
 	if baseURL == "" {
@@ -186,6 +194,17 @@ func GetMempoolBaseURL() (string, error) {
 
 func GetOrdexBaseURL() (string, error) {
 	baseURL := viper.GetString("ordex_base_url")
+	if baseURL == "" {
+		return "err", errors.New("no Ordex base URL found")
+	}
+	return baseURL, nil
+}
+
+func GetNtcBSPT() (string, error) {
+	if Conf.Env != "dev" && Conf.Env != "prod" {
+		return "http://localhost:3001", nil
+	}
+	baseURL := viper.GetString("ntc_psbt_url")
 	if baseURL == "" {
 		return "err", errors.New("no Ordex base URL found")
 	}

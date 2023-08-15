@@ -1,0 +1,88 @@
+{
+  "UnsignedTx": {
+    "Version": 1,
+    "TxIn": [
+      {
+        "PreviousOutPoint": {
+          "Hash": [
+            252,
+            91,
+            82,
+            207,
+            247,
+            183,
+            143,
+            186,
+            222,
+            12,
+            100,
+            168,
+            4,
+            111,
+            248,
+            18,
+            244,
+            78,
+            3,
+            214,
+            99,
+            255,
+            151,
+            176,
+            244,
+            178,
+            11,
+            215,
+            242,
+            142,
+            30,
+            214
+          ],
+          "Index": 0
+        },
+        "SignatureScript": null,
+        "Witness": null,
+        "Sequence": 4294967295
+      }
+    ],
+    "TxOut": [
+      {
+        "Value": 546,
+        "PkScript": "USAxDohtHKCEx5Fy93NQomC2Gu6DsPG3isBYR54gOhKozQ=="
+      }
+    ],
+    "LockTime": 0
+  },
+  "Inputs": [
+    {
+      "NonWitnessUtxo": null,
+      "WitnessUtxo": null,
+      "PartialSigs": null,
+      "SighashType": 0,
+      "RedeemScript": null,
+      "WitnessScript": null,
+      "Bip32Derivation": null,
+      "FinalScriptSig": null,
+      "FinalScriptWitness": null,
+      "TaprootKeySpendSig": null,
+      "TaprootScriptSpendSig": null,
+      "TaprootLeafScript": null,
+      "TaprootBip32Derivation": null,
+      "TaprootInternalKey": null,
+      "TaprootMerkleRoot": null,
+      "Unknowns": null
+    }
+  ],
+  "Outputs": [
+    {
+      "RedeemScript": null,
+      "WitnessScript": null,
+      "Bip32Derivation": null,
+      "TaprootInternalKey": null,
+      "TaprootTapTree": null,
+      "TaprootBip32Derivation": null,
+      "Unknowns": null
+    }
+  ],
+  "Unknowns": []
+}

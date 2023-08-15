@@ -29,16 +29,15 @@ func NewBlockChain() (*BlockChain, error) {
 	}, nil
 }
 
-func (bis *BlockChain) GetBTCPrice() (float64, error) {
-	resp, err := bis.get("/tickers/BTC-USD")
+func (bc *BlockChain) GetBTCPrice() (float64, error) {
+	resp, err := bc.get("/tickers/BTC-USD")
 	if err != nil {
 		return -1.0, err
 	}
 
 	var result map[string]interface{}
-	err = json.Unmarshal(resp, &result)
-	if err != nil {
-		fmt.Println("Error unmarshaling JSON:", err)
+	if err = json.Unmarshal(resp, &result); err != nil {
+		fmt.Println("Error unmarshaling JSON:", err) // TODO: better logging
 		return -1.0, err
 	}
 
@@ -51,14 +50,14 @@ func (bis *BlockChain) GetBTCPrice() (float64, error) {
 	return lastTradePrice, nil
 }
 
-func (bis *BlockChain) get(endpoint string) ([]byte, error) {
-	req, err := http.NewRequest("GET", bis.BaseURL+endpoint, nil)
+func (bc *BlockChain) get(endpoint string) ([]byte, error) {
+	req, err := http.NewRequest("GET", bc.BaseURL+endpoint, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	//req.Header.Set("x-api-key", fmt.Sprintf("Bearer %s", bis.APIKey))
-	resp, err := bis.Client.Do(req)
+	resp, err := bc.Client.Do(req)
 	if err != nil {
 		return nil, err
 	}
