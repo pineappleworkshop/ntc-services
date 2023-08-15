@@ -8,6 +8,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type TradeReqBody struct {
@@ -22,13 +23,12 @@ type TradeMakerReqBody struct {
 	InscriptionNumbers []string `json:"inscription_numbers" bson:"inscription_numbers"`
 }
 
-type TradeListResp struct {
-	Page      int      `json:"page"`
-	PageLimit int      `json:"page_limit"`
-	Total     int      `json:"total"`
-	Trades    []*Trade `json:"trades"`
+type Trades struct {
+	Page   int64    `json:"page"`
+	Limit  int64    `json:"limit"`
+	Total  int64    `json:"total"`
+	Trades []*Trade `json:"trades"`
 }
-
 type Trade struct {
 	ID              primitive.ObjectID  `json:"id" bson:"_id"`
 	MakerID         primitive.ObjectID  `json:"maker_id" bson:"maker_id"`
@@ -109,23 +109,33 @@ func GetTradesByStatus(c echo.Context, status string) ([]*Trade, error) {
 	return trades, nil
 }
 
-func GetTrades(c echo.Context) ([]*Trade, error) {
-	filter := bson.M{}
+func GetTradesPaginatedByStatus(page, limit int64, status []string) ([]*Trade, int64, error) {
+	opts := options.Find().SetLimit(limit).SetSkip(page - 1)
+
+	var filter bson.M
+	if len(status) > 0 && status[0] != "" {
+		filter = bson.M{"status": bson.M{"$in": status}}
+	} else {
+		filter = bson.M{}
+	}
+
 	collection := stores.DB.Mongo.Client.Database(stores.DB_NAME).Collection(stores.DB_COLLECTION_TRADES)
 
-	cursor, err := collection.Find(context.TODO(), filter)
+	total, err := collection.CountDocuments(context.TODO(), filter, nil)
 	if err != nil {
-		c.Logger().Error(err)
-		return nil, err
+		return nil, -1, err
 	}
 
+	cursor, err := collection.Find(context.TODO(), filter, opts)
+	if err != nil {
+		return nil, -1, err
+	}
 	var trades []*Trade
 	if err := cursor.All(context.TODO(), &trades); err != nil {
-		c.Logger().Error(err)
-		return nil, err
+		return nil, -1, err
 	}
 
-	return trades, nil
+	return trades, total, nil
 }
 
 func GetTradeByID(c echo.Context, idStr string) (*Trade, error) {

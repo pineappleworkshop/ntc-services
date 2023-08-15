@@ -1,11 +1,13 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"ntc-services/models"
 	"ntc-services/services"
 	"ntc-services/stores"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -116,14 +118,31 @@ func PostMakerByTradeID(c echo.Context) error {
 		return c.JSON(http.StatusConflict, "Maker Wallet does not match Wallet ID")
 	}
 	// TODO: query ordex for extra inscription information (floor price, previous tx, more...)
-	for _, value := range tradeMakerReqBody.InscriptionNumbers {
-		inscription, err := services.BESTINSLOT.GetInscriptionById(c, value)
-		if err != nil {
-			c.Logger().Error(err)
-			return c.JSON(http.StatusInternalServerError, err)
-		}
-		fmt.Printf("inscription: %+v\n", inscription)
+	// look for another endpoint called get inscriptions by id (multiple same time)
+	response, err := services.ORDEX.GetInscriptionsByIds(tradeMakerReqBody.InscriptionNumbers)
+	if err != nil {
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err)
 	}
+	// fmt.Printf("inscriptions: %+v\n", inscriptions)
+	// Format response as readable JSON
+	formattedJSON, err := formatJSON(response)
+	if err != nil {
+		fmt.Println("Error formatting JSON:", err)
+		return c.JSON(http.StatusInternalServerError, err)
+	}
+
+	fmt.Println("Formatted JSON:")
+	fmt.Println(formattedJSON)
+
+	// for _, value := range tradeMakerReqBody.InscriptionNumbers {
+	// 	inscription, err := services.BESTINSLOT.GetInscriptionById(c, value)
+	// 	if err != nil {
+	// 		c.Logger().Error(err)
+	// 		return c.JSON(http.StatusInternalServerError, err)
+	// 	}
+	// 	fmt.Printf("inscription: %+v\n", inscription)
+	// }
 
 	// TODO: validate that assets still belong to maker wallet
 	// TODO: update side
@@ -135,27 +154,42 @@ func PostMakerByTradeID(c echo.Context) error {
 	return c.JSON(http.StatusCreated, maker)
 }
 
-/* Query Params
+/*
+	Query Params
+
 ?status={enum,csv}
 */
+func formatJSON(data interface{}) (string, error) {
+	prettyJSON, err := json.MarshalIndent(data, "", "    ")
+	if err != nil {
+		return "", err
+	}
+	return string(prettyJSON), nil
+}
 
 func GetTrades(c echo.Context) error {
 	// TODO: get trades by query
+	status := c.QueryParam("status")
+	statusValues := strings.Split(status, ",")
 	// TODO: paginated response
-	trades, err := models.GetTrades(c)
+	page, limit, err := parsePagination(c)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err)
+	}
+	trades, total, err := models.GetTradesPaginatedByStatus(page, limit, statusValues)
 	if err != nil {
 		c.Logger().Error(err)
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 
-	tradesResp := models.TradeListResp{
-		Page:      1,
-		PageLimit: -1,
-		Total:     len(trades),
-		Trades:    trades,
+	resp := models.Trades{
+		Page:   page,
+		Limit:  limit,
+		Total:  total,
+		Trades: trades,
 	}
 
-	return c.JSON(http.StatusOK, tradesResp)
+	return c.JSON(http.StatusOK, resp)
 }
 
 /* Request Body
@@ -223,20 +257,27 @@ func PostOfferByTradeID(c echo.Context) error {
 func GetOffersByTradeID(c echo.Context) error {
 	// TODO: get trades for trade by query
 	// TODO: paginated response
-	offers, err := models.GetOffersByTradeID(c)
+	tradeID := c.Param("id")
+	status := c.QueryParam("status")
+	statusValues := strings.Split(status, ",")
+	page, limit, err := parsePagination(c)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err)
+	}
+	offers, total, err := models.GetOffersPaginatedByTradeID(page, limit, tradeID, statusValues)
 	if err != nil {
 		c.Logger().Error(err)
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 
-	offersResp := models.OfferListResp{
-		Page:      1,
-		PageLimit: -1,
-		Total:     len(offers),
-		Offers:    offers,
+	resp := models.Offers{
+		Page:   page,
+		Limit:  limit,
+		Total:  total,
+		Offers: offers,
 	}
 
-	return c.JSON(http.StatusOK, offersResp)
+	return c.JSON(http.StatusOK, resp)
 
 }
 

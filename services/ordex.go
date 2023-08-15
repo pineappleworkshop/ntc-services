@@ -1,6 +1,7 @@
 package services
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -42,6 +43,31 @@ func (o *Ordex) GetInscriptionById(id string) (interface{}, error) {
 	return body, nil
 }
 
+func (o *Ordex) GetInscriptionsByIds(ids []string) (interface{}, error) {
+	requestBody := struct {
+		Ids []string `json:"ids"`
+	}{
+		Ids: ids,
+	}
+
+	bodyBytes, err := json.Marshal(requestBody)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := o.post("/inscriptions/byIds", bodyBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	var body interface{}
+	if err := json.Unmarshal(resp, &body); err != nil {
+		return nil, err
+	}
+
+	return body, nil
+}
+
 func (o *Ordex) get(endpoint string) ([]byte, error) {
 	fmt.Println("baseURL:", o.BaseURL)
 	req, err := http.NewRequest("GET", o.BaseURL+endpoint, nil)
@@ -61,4 +87,25 @@ func (o *Ordex) get(endpoint string) ([]byte, error) {
 	}
 
 	return body, nil
+}
+func (o *Ordex) post(endpoint string, body []byte) ([]byte, error) {
+	req, err := http.NewRequest("POST", o.BaseURL+endpoint, bytes.NewBuffer(body))
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := o.Client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	responseBody, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	return responseBody, nil
 }
