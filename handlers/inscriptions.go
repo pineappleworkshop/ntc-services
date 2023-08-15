@@ -2,10 +2,11 @@ package handlers
 
 import (
 	"errors"
-	"github.com/labstack/echo/v4"
 	"net/http"
 	"ntc-services/models"
 	"ntc-services/services"
+
+	"github.com/labstack/echo/v4"
 )
 
 func GetInscriptions(c echo.Context) error {
@@ -44,6 +45,18 @@ func GetInscriptions(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, resp)
+}
+
+func GetInscriptionById(c echo.Context) error {
+	// TODO: revisit err propogation and ctx tree
+	// TODO: discuss the resp structure.. currently a clone of BIS
+	inscription, err := services.BESTINSLOT.GetInscriptionById(c, c.Param("id"))
+	if err != nil {
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err)
+	}
+
+	return c.JSON(http.StatusOK, inscription)
 }
 
 func GetBRC20s(c echo.Context) error {
