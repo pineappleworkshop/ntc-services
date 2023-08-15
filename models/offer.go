@@ -1,9 +1,21 @@
 package models
 
 import (
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"context"
+	"ntc-services/stores"
 	"time"
+
+	"github.com/labstack/echo/v4"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
+
+type OfferListResp struct {
+	Page      int      `json:"page"`
+	PageLimit int      `json:"page_limit"`
+	Total     int      `json:"total"`
+	Offers    []*Offer `json:"offers"`
+}
 
 type Offer struct {
 	ID              primitive.ObjectID `json:"id" bson:"_id"`
@@ -18,8 +30,56 @@ type Offer struct {
 
 func NewOffer(tradeID primitive.ObjectID) *Offer {
 	return &Offer{
-		ID:        primitive.ObjectID{},
+		ID:        primitive.NewObjectID(),
 		TradeID:   tradeID,
 		CreatedAt: time.Now().Unix(),
 	}
+}
+
+func (o *Offer) Create(c echo.Context) error {
+	collection := stores.DB.Mongo.Client.Database(stores.DB_NAME).Collection(stores.DB_COLLECTION_OFFERS)
+	if _, err := collection.InsertOne(context.TODO(), o); err != nil {
+		c.Logger().Error(err)
+		return err
+	}
+
+	return nil
+}
+
+func (o *Offer) Update(c echo.Context) error {
+	now := time.Now().Unix()
+	o.UpdatedAt = &now
+
+	collection := stores.DB.Mongo.Client.Database(stores.DB_NAME).Collection(stores.DB_COLLECTION_OFFERS)
+	if _, err := collection.ReplaceOne(context.TODO(), bson.M{"_id": o.ID}, o); err != nil {
+		c.Logger().Error(err)
+		return err
+	}
+
+	return nil
+}
+
+func GetOffersByTradeID(c echo.Context) ([]*Offer, error) {
+	tradeID := c.Param("id")
+	idHex, err := primitive.ObjectIDFromHex(tradeID)
+	if err != nil {
+		return nil, err
+	}
+	filter := bson.M{"trade_id": idHex}
+
+	collection := stores.DB.Mongo.Client.Database(stores.DB_NAME).Collection(stores.DB_COLLECTION_OFFERS)
+
+	cursor, err := collection.Find(context.TODO(), filter)
+	if err != nil {
+		c.Logger().Error(err)
+		return nil, err
+	}
+
+	var offers []*Offer
+	if err := cursor.All(context.TODO(), &offers); err != nil {
+		c.Logger().Error(err)
+		return nil, err
+	}
+
+	return offers, nil
 }

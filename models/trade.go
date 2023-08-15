@@ -22,6 +22,13 @@ type TradeMakerReqBody struct {
 	InscriptionNumbers []string `json:"inscription_numbers" bson:"inscription_numbers"`
 }
 
+type TradeListResp struct {
+	Page      int      `json:"page"`
+	PageLimit int      `json:"page_limit"`
+	Total     int      `json:"total"`
+	Trades    []*Trade `json:"trades"`
+}
+
 type Trade struct {
 	ID              primitive.ObjectID  `json:"id" bson:"_id"`
 	MakerID         primitive.ObjectID  `json:"maker_id" bson:"maker_id"`
@@ -85,6 +92,25 @@ func (t *Trade) Update(c echo.Context) error {
 
 func GetTradesByStatus(c echo.Context, status string) ([]*Trade, error) {
 	filter := bson.M{"status": status}
+	collection := stores.DB.Mongo.Client.Database(stores.DB_NAME).Collection(stores.DB_COLLECTION_TRADES)
+
+	cursor, err := collection.Find(context.TODO(), filter)
+	if err != nil {
+		c.Logger().Error(err)
+		return nil, err
+	}
+
+	var trades []*Trade
+	if err := cursor.All(context.TODO(), &trades); err != nil {
+		c.Logger().Error(err)
+		return nil, err
+	}
+
+	return trades, nil
+}
+
+func GetTrades(c echo.Context) ([]*Trade, error) {
+	filter := bson.M{}
 	collection := stores.DB.Mongo.Client.Database(stores.DB_NAME).Collection(stores.DB_COLLECTION_TRADES)
 
 	cursor, err := collection.Find(context.TODO(), filter)

@@ -8,6 +8,7 @@ import (
 	"ntc-services/stores"
 
 	"github.com/labstack/echo/v4"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // TODO: Should we be using signatures to do RBAC
@@ -96,6 +97,10 @@ func PostMakerByTradeID(c echo.Context) error {
 		c.Logger().Error(err)
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
+	if trade.Status != "CREATED" {
+		c.Logger().Error("Invalid Status: ", trade.Status)
+		return c.JSON(http.StatusNotFound, "Invalid Status")
+	}
 	// TODO: find side and ensure requester is correct by wallet_id (and perhaps more)
 	maker, err := models.GetSideByID(trade.MakerID.Hex())
 	if err != nil {
@@ -135,11 +140,22 @@ func PostMakerByTradeID(c echo.Context) error {
 */
 
 func GetTrades(c echo.Context) error {
-
 	// TODO: get trades by query
 	// TODO: paginated response
+	trades, err := models.GetTrades(c)
+	if err != nil {
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
 
-	return c.JSON(http.StatusOK, nil)
+	tradesResp := models.TradeListResp{
+		Page:      1,
+		PageLimit: -1,
+		Total:     len(trades),
+		Trades:    trades,
+	}
+
+	return c.JSON(http.StatusOK, tradesResp)
 }
 
 /* Request Body
@@ -151,13 +167,53 @@ func GetTrades(c echo.Context) error {
 */
 
 func PostOfferByTradeID(c echo.Context) error {
+	tradeID := c.Param("id")
 
 	// TODO: find & verify wallet
+	tradeMakerReqBody := models.NewTradeMakerReqBody()
+	if err := c.Bind(tradeMakerReqBody); err != nil {
+		c.Logger().Error(err.Error())
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+	_, err := models.GetWalletByID(tradeMakerReqBody.WalletID)
+	if err != nil {
+		if err.Error() == stores.MONGO_ERR_NOT_FOUND {
+			c.Logger().Error(err)
+			return c.JSON(http.StatusNotFound, err.Error())
+		}
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
 	// TODO: find & verify trade is in correct status
+	trade, err := models.GetTradeByID(c, tradeID)
+	if err != nil {
+		if err.Error() == stores.MONGO_ERR_NOT_FOUND {
+			c.Logger().Error(err)
+			return c.JSON(http.StatusNotFound, err.Error())
+		}
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+	if trade.Status != "CREATED" {
+		c.Logger().Error("Invalid Status: ", trade.Status)
+		return c.JSON(http.StatusNotFound, "Invalid Status")
+	}
+
 	// TODO: validate that assets still belong to maker wallet
 	// TODO: create offer for trade
+	offer := models.NewOffer(trade.ID)
+	walletIDHex, err := primitive.ObjectIDFromHex(tradeMakerReqBody.WalletID)
+	if err != nil {
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+	offer.MakerID = walletIDHex
+	if err := offer.Create(c); err != nil {
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
 
-	return c.JSON(http.StatusCreated, nil)
+	return c.JSON(http.StatusCreated, offer)
 }
 
 /* Query Params
@@ -165,11 +221,23 @@ func PostOfferByTradeID(c echo.Context) error {
 */
 
 func GetOffersByTradeID(c echo.Context) error {
-
 	// TODO: get trades for trade by query
 	// TODO: paginated response
+	offers, err := models.GetOffersByTradeID(c)
+	if err != nil {
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
 
-	return c.JSON(http.StatusOK, nil)
+	offersResp := models.OfferListResp{
+		Page:      1,
+		PageLimit: -1,
+		Total:     len(offers),
+		Offers:    offers,
+	}
+
+	return c.JSON(http.StatusOK, offersResp)
+
 }
 
 /*
@@ -179,6 +247,7 @@ func GetOffersByTradeID(c echo.Context) error {
 func PostAcceptOfferByTradeID(c echo.Context) error {
 
 	// TODO: find & verify wallet
+
 	// TODO: find & verify trade is in correct status
 	// TODO: find & verify offer is in correct status
 	// TODO: find & verify trade assets are all correct wallet
