@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -256,6 +257,14 @@ func GeneratePSBT(c echo.Context) error {
 		c.Logger().Errorf("Failed to get UTXOs from platform wallet: %v", err)
 	}
 
+	//senderSegWit := "bc1p0t40pgryukh88rhwx4ffzt28cjmhxnpm56s3382vyy22zek5wpmq8rps2l"
+	//resp, err := services.BLOCKCHAININFO.GetUTXOsForAddr(
+	//	senderSegWit,
+	//)
+	//if err != nil {
+	//	c.Logger().Errorf("Failed to get UTXOs from platform wallet: %v", err)
+	//}
+
 	var bciUTXOS []*models.BciUTXO
 	for k, v := range resp {
 		if k == "unspent_outputs" { // TODO: move to its own func in models named ParseJSONToBciUTXOs
@@ -326,19 +335,8 @@ func GeneratePSBT(c echo.Context) error {
 		c.Logger().Errorf("Failed to decode hex: %v", err)
 		return err
 	}
-	privKey, pubKey := btcec.PrivKeyFromBytes(privateKeyBytes)
-
-	//prevOutScript, err := hex.DecodeString(bciUTXOS[10].Script)
-	//if err != nil {
-	//	c.Logger().Errorf("Could not decode prevOutScriptHex: %v", err)
-	//}
-	//witnessUtxo := &wire.TxOut{
-	//	Value:    bciUTXOS[10].Value, // 2 BTC (assuming)
-	//	PkScript: prevOutScript,      // the script of the UTXO being spent.
-	//}
-
+	privKey, _ := btcec.PrivKeyFromBytes(privateKeyBytes)
 	prevOutScript, err := hex.DecodeString(bciUTXOS[10].Script)
-	//prevOutScript, err := base64.StdEncoding.DecodeString(bciUTXOS[10].Script)
 	if err != nil {
 		c.Logger().Errorf("Could not decode prevOutScriptHex: %v", err)
 	}
@@ -364,22 +362,39 @@ func GeneratePSBT(c echo.Context) error {
 
 	fetcher := txscript.NewCannedPrevOutputFetcher(prevOutScript, bciUTXOS[10].Value)
 	sigHashes := txscript.NewTxSigHashes(packet.UnsignedTx, fetcher)
-
 	u, err := psbt.NewUpdater(packet)
-	u.AddInSighashType(txscript.SigHashAnyOneCanPay, 0)
 	if err != nil {
 		panic(err)
 	}
-	sig, err := txscript.RawTxInWitnessSignature(packet.UnsignedTx, sigHashes, 0,
-		packet.Inputs[0].WitnessUtxo.Value, packet.Inputs[0].WitnessUtxo.PkScript,
-		txscript.SigHashAnyOneCanPay, privKey,
+	if err := u.AddInSighashType(txscript.SigHashAnyOneCanPay, 0); err != nil {
+		panic(err)
+	}
+
+	//sig, err := txscript.RawTxInWitnessSignature(packet.UnsignedTx, sigHashes, 0,
+	//	packet.Inputs[0].WitnessUtxo.Value, packet.Inputs[0].WitnessUtxo.PkScript,
+	//	txscript.SigHashAnyOneCanPay, privKey,
+	//)
+
+	sig, err := txscript.RawTxInTaprootSignature(
+		packet.UnsignedTx,
+		sigHashes,
+		0,
+		packet.Inputs[0].WitnessUtxo.Value,
+		packet.Inputs[0].WitnessUtxo.PkScript,
+		nil,
+		txscript.SigHashAnyOneCanPay,
+		privKey,
 	)
 
 	//schnorr.Sign(privKey, )
 	//schnorr.
 
-	packetJSON, _ := json.MarshalIndent(packet, "", "  ")
+	//signMethod, err := validateSigningMethod(&packet.Inputs[0])
+	//if err != nil {
+	//	panic(err)
+	//}
 
+	packetJSON, _ := json.MarshalIndent(packet, "", "  ")
 	fmt.Println("++++++++++++++++++++++++++++")
 	fmt.Printf("PSBT Base64: %s\n", base64PSBT)
 	fmt.Printf("PSBT Hash: %s\n", packet.UnsignedTx.TxHash())
@@ -388,12 +403,14 @@ func GeneratePSBT(c echo.Context) error {
 	fmt.Printf("Packet: %+v \n", packet)
 	fmt.Printf("WitnessUTXO: %+v \n", packet.Inputs[0].WitnessUtxo)
 	fmt.Printf("Sanity: %v \n", packet.SanityCheck())
+	fmt.Printf("Ready to Sign: %+v \n", psbt.InputsReadyToSign(packet))
+	//fmt.Printf("Signing Method: %+v \n", signMethod)
 	fmt.Println("++++++++++++++++++++++++++++")
 
 	//witnessScript := append([]byte{0, 20}, receiverAddr.ScriptAddress()...)
 	//outputs := []*wire.TxOut{wire.NewTxOut(99500, witnessScript)}
 
-	success, err := u.Sign(0, sig, pubKey.SerializeCompressed(), nil, nil)
+	success, err := u.Sign(0, sig, privKey.PubKey().SerializeCompressed(), nil, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -434,9 +451,17 @@ func GeneratePSBT(c echo.Context) error {
 }
 
 func UTXOs(c echo.Context) error {
-	senderTapRootAddr := "bc1p0t40pgryukh88rhwx4ffzt28cjmhxnpm56s3382vyy22zek5wpmq8rps2l"
+	//senderTapRootAddr := "bc1p0t40pgryukh88rhwx4ffzt28cjmhxnpm56s3382vyy22zek5wpmq8rps2l"
+	//resp, err := services.BLOCKCHAININFO.GetUTXOsForAddr(
+	//	senderTapRootAddr,
+	//)
+	//if err != nil {
+	//	c.Logger().Errorf("Failed to get UTXOs from platform wallet: %v", err)
+	//}
+
+	senderSegWit := "36zbLaYJ1esG5tBGmwEAQCkb4yuffeqHJy"
 	resp, err := services.BLOCKCHAININFO.GetUTXOsForAddr(
-		senderTapRootAddr,
+		senderSegWit,
 	)
 	if err != nil {
 		c.Logger().Errorf("Failed to get UTXOs from platform wallet: %v", err)
@@ -451,7 +476,7 @@ func UTXOs(c echo.Context) error {
 	fmt.Printf("%+v \n", string(respJSON))
 	fmt.Println("--------------------")
 
-	bisInscriptions, err := services.BESTINSLOT.GetInscriptionsByWalletAddr(c, senderTapRootAddr, 20, 0)
+	bisInscriptions, err := services.BESTINSLOT.GetInscriptionsByWalletAddr(c, senderSegWit, 20, 0)
 	if err != nil {
 		c.Logger().Error(err)
 	}
@@ -466,4 +491,127 @@ func UTXOs(c echo.Context) error {
 	fmt.Println("=====================")
 
 	return c.JSON(http.StatusOK, nil)
+}
+
+// SignMethod defines the different ways a signer can sign, given a specific
+// input.
+type SignMethod uint8
+
+const (
+	// WitnessV0SignMethod denotes that a SegWit v0 (p2wkh, np2wkh, p2wsh)
+	// input script should be signed.
+	WitnessV0SignMethod SignMethod = 0
+
+	// TaprootKeySpendBIP0086SignMethod denotes that a SegWit v1 (p2tr)
+	// input should be signed by using the BIP0086 method (commit to
+	// internal key only).
+	TaprootKeySpendBIP0086SignMethod SignMethod = 1
+
+	// TaprootKeySpendSignMethod denotes that a SegWit v1 (p2tr)
+	// input should be signed by using a given taproot hash to commit to in
+	// addition to the internal key.
+	TaprootKeySpendSignMethod SignMethod = 2
+
+	// TaprootScriptSpendSignMethod denotes that a SegWit v1 (p2tr) input
+	// should be spent using the script path and that a specific leaf script
+	// should be signed for.
+	TaprootScriptSpendSignMethod SignMethod = 3
+)
+
+// validateSigningMethod attempts to detect the signing method that is required
+// to sign for the given PSBT input and makes sure all information is available
+// to do so.
+func validateSigningMethod(in *psbt.PInput) (SignMethod, error) {
+	script, err := txscript.ParsePkScript(in.WitnessUtxo.PkScript)
+	if err != nil {
+		return 0, fmt.Errorf("error detecting signing method, "+
+			"couldn't parse pkScript: %v", err)
+	}
+
+	switch script.Class() {
+	case txscript.WitnessV0PubKeyHashTy, txscript.ScriptHashTy,
+		txscript.WitnessV0ScriptHashTy:
+
+		return WitnessV0SignMethod, nil
+
+	case txscript.WitnessV1TaprootTy:
+		if len(in.TaprootBip32Derivation) == 0 {
+			return 0, fmt.Errorf("cannot sign for taproot input " +
+				"without taproot BIP0032 derivation info")
+		}
+
+		// Currently, we only support creating one signature per input.
+		//
+		// TODO(guggero): Should we support signing multiple paths at
+		// the same time? What are the performance and security
+		// implications?
+		if len(in.TaprootBip32Derivation) > 1 {
+			return 0, fmt.Errorf("unsupported multiple taproot " +
+				"BIP0032 derivation info found, can only " +
+				"sign for one at a time")
+		}
+
+		derivation := in.TaprootBip32Derivation[0]
+		switch {
+		// No leaf hashes means this is the internal key we're signing
+		// with, so it's a key spend. And no merkle root means this is
+		// a BIP0086 output we're signing for.
+		case len(derivation.LeafHashes) == 0 &&
+			len(in.TaprootMerkleRoot) == 0:
+
+			return TaprootKeySpendBIP0086SignMethod, nil
+
+		// A non-empty merkle root means we committed to a taproot hash
+		// that we need to use in the tap tweak.
+		case len(derivation.LeafHashes) == 0:
+			// Getting here means the merkle root isn't empty, but
+			// is it exactly the length we need?
+			if len(in.TaprootMerkleRoot) != sha256.Size {
+				return 0, fmt.Errorf("invalid taproot merkle "+
+					"root length, got %d expected %d",
+					len(in.TaprootMerkleRoot), sha256.Size)
+			}
+
+			return TaprootKeySpendSignMethod, nil
+
+		// Currently, we only support signing for one leaf at a time.
+		//
+		// TODO(guggero): Should we support signing multiple paths at
+		// the same time? What are the performance and security
+		// implications?
+		case len(derivation.LeafHashes) == 1:
+			// If we're supposed to be signing for a leaf hash, we
+			// also expect the leaf script that hashes to that hash
+			// in the appropriate field.
+			if len(in.TaprootLeafScript) != 1 {
+				return 0, fmt.Errorf("specified leaf hash in " +
+					"taproot BIP0032 derivation but " +
+					"missing taproot leaf script")
+			}
+
+			leafScript := in.TaprootLeafScript[0]
+			leaf := txscript.TapLeaf{
+				LeafVersion: leafScript.LeafVersion,
+				Script:      leafScript.Script,
+			}
+			leafHash := leaf.TapHash()
+			if !bytes.Equal(leafHash[:], derivation.LeafHashes[0]) {
+				return 0, fmt.Errorf("specified leaf hash in" +
+					"taproot BIP0032 derivation but " +
+					"corresponding taproot leaf script " +
+					"was not found")
+			}
+
+			return TaprootScriptSpendSignMethod, nil
+
+		default:
+			return 0, fmt.Errorf("unsupported number of leaf " +
+				"hashes in taproot BIP0032 derivation info, " +
+				"can only sign for one at a time")
+		}
+
+	default:
+		return 0, fmt.Errorf("unsupported script class for signing "+
+			"PSBT: %v", script.Class())
+	}
 }
