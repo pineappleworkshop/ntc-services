@@ -22,7 +22,7 @@ func GetInscriptions(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err)
 	}
 
-	// TODO: revisit err propogation and ctx tree
+	// TODO: revisit err propagation and ctx tree
 	// TODO: try to find inscriptions by inscriptionID before query/possible? (Trying to limit API requests)
 
 	bisInscriptions, err := services.BESTINSLOT.GetInscriptionsByWalletAddr(c, c.Param("addr"), limit, page)

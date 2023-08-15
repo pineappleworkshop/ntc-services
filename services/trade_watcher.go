@@ -1,6 +1,9 @@
 package services
 
 import (
+	"encoding/json"
+	"fmt"
+	"github.com/btcsuite/btcd/btcutil/psbt"
 	"github.com/labstack/echo/v4"
 	"net/http/httptest"
 	"ntc-services/config"
@@ -58,6 +61,30 @@ func NewTradeWatcher() (*TradeWatcher, error) {
 		log.Error(err)
 		return nil, err
 	}
+
+	// TODO: Remove commented code
+	txHash, err := chainhash.NewHashFromStr("abde020627dc40f6d39ca4db7c682a13737a0b0a900b0c0afce5b9680e93f94a")
+	if err != nil {
+		panic(err)
+	}
+
+	tx, err := client.GetRawTransaction(txHash)
+	if err != nil {
+		panic(err)
+	}
+	packet, _, _, err := psbt.NewFromSignedTx(tx.MsgTx())
+	if err != nil {
+		panic(err)
+	}
+
+	txJSON, err := json.MarshalIndent(packet, "", "  ")
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("************************")
+	fmt.Printf("%+v \n", string(txJSON))
+	fmt.Println("************************")
 
 	return &TradeWatcher{
 		BTCClient: client,

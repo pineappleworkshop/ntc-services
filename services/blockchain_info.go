@@ -9,19 +9,20 @@ import (
 	"time"
 )
 
-type BlockChain struct {
+type BlockChainInfo struct {
 	APIKey  string
 	BaseURL string
 	Client  *http.Client
 }
 
-func NewBlockChain() (*BlockChain, error) {
-	baseURL, err := config.GetBlockChainBaseURL()
+func NewBlockChainInfo() (*BlockChainInfo, error) {
+	baseURL, err := config.GetBlockChainInfoBaseURL()
 	if err != nil {
 		return nil, err
 	}
 
-	return &BlockChain{
+	return &BlockChainInfo{
+		APIKey:  "",
 		BaseURL: baseURL,
 		Client: &http.Client{
 			Timeout: time.Second * 30,
@@ -29,35 +30,29 @@ func NewBlockChain() (*BlockChain, error) {
 	}, nil
 }
 
-func (bc *BlockChain) GetBTCPrice() (float64, error) {
-	resp, err := bc.get("/tickers/BTC-USD")
+func (bci *BlockChainInfo) GetUTXOsForAddr(addr string) (map[string]interface{}, error) {
+	resp, err := bci.get(fmt.Sprintf("/unspent?active=%s", addr))
 	if err != nil {
-		return -1.0, err
+		fmt.Printf("Could not assemble URL: %+v \n", err)
+		return nil, err
 	}
 
 	var result map[string]interface{}
 	if err = json.Unmarshal(resp, &result); err != nil {
 		fmt.Println("Error unmarshaling JSON:", err) // TODO: better logging
-		return -1.0, err
+		return nil, err
 	}
 
-	lastTradePrice, ok := result["last_trade_price"].(float64)
-	if !ok {
-		fmt.Println("Invalid type for last_trade_price")
-		return -1.0, err
-	}
-
-	return lastTradePrice, nil
+	return result, nil
 }
 
-func (bc *BlockChain) get(endpoint string) ([]byte, error) {
-	req, err := http.NewRequest("GET", bc.BaseURL+endpoint, nil)
+func (bci *BlockChainInfo) get(endpoint string) ([]byte, error) {
+	req, err := http.NewRequest("GET", bci.BaseURL+endpoint, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	//req.Header.Set("x-api-key", fmt.Sprintf("Bearer %s", bis.APIKey))
-	resp, err := bc.Client.Do(req)
+	resp, err := bci.Client.Do(req)
 	if err != nil {
 		return nil, err
 	}

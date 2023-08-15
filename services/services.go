@@ -5,6 +5,7 @@ var BESTINSLOT *BestInSlot
 var BLOCKCHAIN *BlockChain
 var MEMPOOL *Mempool
 var ORDEX *Ordex
+var BLOCKCHAININFO *BlockChainInfo
 
 func StartServices() (err error) {
 	// STATE, err = BootstrapState()
@@ -34,6 +35,11 @@ func StartServices() (err error) {
 	}
 
 	ORDEX, err = NewOrdex()
+	if err != nil {
+		panic(err)
+	}
+
+	BLOCKCHAININFO, err = NewBlockChainInfo()
 	if err != nil {
 		panic(err)
 	}

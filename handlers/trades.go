@@ -26,8 +26,8 @@ func PostTrades(c echo.Context) error {
 /* Request Body
 {
   "wallet_id": "bson_id",
-  "inscriptions": [{models.inscription}],
-  "utxos": [{models.inscription}]
+  "btc": 1000,
+  "inscription_numbers": [1234, 2344]
 }
 */
 
@@ -58,8 +58,8 @@ func GetTrades(c echo.Context) error {
 /* Request Body
 {
   "wallet_id": "bson_id",
-  "inscriptions": [{models.inscription}],
-  "utxos": [{models.inscription}]
+  "btc": 1000,
+  "inscription_numbers": [1234, 2344]
 }
 */
 
@@ -102,8 +102,8 @@ func PostAcceptOfferByTradeID(c echo.Context) error {
 }
 
 /*
-
- */
+{}
+*/
 
 func PostSubmitTradeByID(c echo.Context) error {
 
