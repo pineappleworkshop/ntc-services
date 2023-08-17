@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"ntc-services/models"
@@ -30,7 +31,7 @@ var makerUTXOsAll = []*models.UTXO{
 		TxHashBigEndian: "1e6443192a9df8c0483cae22e2690505d1d770825fedb9fc8f2aad2c427db79f",
 		TxIndex:         5619533738251685,
 		TxOutputN:       0,
-		Value:           10000,
+		Value:           200000,
 		ValueHex:        "2710",
 	},
 	{
@@ -118,7 +119,7 @@ var takerUTXOsAll = []*models.UTXO{
 		TxHashBigEndian: "1a8fe558a262d752f05218d26f1d3d6ffafbe7981797a18341f418a45e5d1b38",
 		TxIndex:         1974085816189726,
 		TxOutputN:       0,
-		Value:           300000,
+		Value:           30000000,
 		ValueHex:        "0493e0",
 	},
 }
@@ -132,7 +133,7 @@ var taker = &models.Side{
 	WalletID:           takerWallet.ID,
 	Wallet:             takerWallet,
 	InscriptionNumbers: nil,
-	BTC:                100000,
+	BTC:                10000000,
 	Inscriptions:       nil,
 	//UTXOs:              takerUTXOs,
 	CreatedAt: now,
@@ -158,6 +159,15 @@ var trade = &models.Trade{
 
 func TestPBST(t *testing.T) {
 	var err error
+
+	fmt.Println("++++++++++++++++++++++++++++")
+	fmt.Printf("Trade: %+v \n", trade)
+	fmt.Printf("Maker: %+v \n", trade.Maker)
+	fmt.Printf("Taker: %+v \n", trade.Taker)
+	fmt.Printf("Maker Wallet: %+v \n", trade.Maker.Wallet)
+	fmt.Printf("Taker Wallet: %+v \n", trade.Taker.Wallet)
+	fmt.Println("++++++++++++++++++++++++++++")
+
 	psbt := NewPBST(trade, makerUTXOsAll, takerUTXOsAll, makerInscriptionsAll, takerInscriptionsAll)
 	assert.Len(t, psbt.MakerUTXOsAll, 2)
 	assert.Len(t, psbt.TakerUTXOsAll, 1)
@@ -175,5 +185,44 @@ func TestPBST(t *testing.T) {
 
 	err = psbt.calculatePlatformFee()
 	assert.Nil(t, err)
-	assert.Equal(t, int64(101000), psbt.PlatformFee)
+	assert.Equal(t, int64(100000), psbt.PlatformFee)
+	assert.Equal(t, int64(0), psbt.MakerPayment)
+	assert.Equal(t, int64(0), psbt.TakerPayment)
+
+	err = psbt.selectPaymentUTXOs()
+	assert.Nil(t, err)
+	assert.Len(t, psbt.MakerPaymentUTXOs, 1)
+	assert.Len(t, psbt.TakerPaymentUTXOs, 1)
+	assert.Equal(t, psbt.MakerPayment, int64(50000))
+	assert.Equal(t, psbt.TakerPayment, int64(10050000))
+	assert.Equal(t, psbt.MakerChange, int64(150000))
+	assert.Equal(t, psbt.TakerChange, int64(19950000))
+
+	err = psbt.createInscriptionInputs()
+	assert.Nil(t, err)
+	assert.Len(t, psbt.Inputs, 1)
+
+	err = psbt.createInscriptionOutputs()
+	assert.Nil(t, err)
+	assert.Len(t, psbt.Outputs, 1)
+
+	err = psbt.createPaymentInputs()
+	assert.Nil(t, err)
+	assert.Len(t, psbt.Inputs, 3)
+
+	err = psbt.createPaymentsOutputs()
+	assert.Nil(t, err)
+	assert.Len(t, psbt.Outputs, 6)
+
+	fmt.Println("==================Inputs")
+	for i, out := range psbt.Inputs {
+		fmt.Printf("Index: %v - Input%+v \n", i, out)
+	}
+	fmt.Println("=========================")
+
+	fmt.Println("==================Outputs")
+	for i, out := range psbt.Outputs {
+		fmt.Printf("Index: %v - Output%+v \n", i, out)
+	}
+	fmt.Println("=========================")
 }

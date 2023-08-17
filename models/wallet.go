@@ -16,7 +16,9 @@ type Wallet struct {
 	Type               string             `json:"wallet_type" bson:"wallet_type"`
 	CardinalAddr       string             `json:"cardinal_addr" bson:"cardinal_addr"`
 	TapRootAddr        string             `json:"tap_root_addr" bson:"tap_root_addr"`
+	TapRootPublicKey   string             `json:"tap_root_public_key" bson:"tap_root_public_key"`
 	SegwitAddr         string             `json:"segwit_addr" bson:"segwit_addr"`
+	SegwitPublicKey    string             `json:"segwit_public_key" bson:"segwit_public_key"`
 	CreatedAt          int64              `json:"created_at" bson:"created_at"`
 	UpdatedAt          *int64             `json:"updated_at" bson:"updated_at"`
 	LastConnectedAt    *int64             `json:"last_connected_at" bson:"last_connected_at"`
