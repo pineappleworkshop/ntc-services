@@ -2,7 +2,6 @@ package services
 
 import (
 	"errors"
-	"github.com/btcsuite/btcd/btcutil/psbt"
 	"github.com/btcsuite/btcd/wire"
 	"math"
 	"ntc-services/models"
@@ -30,6 +29,11 @@ type PSBT struct {
 	Outputs               map[int]*Output
 }
 
+type PSBTReqBody struct {
+	Inputs  map[int]*Input  `json:"inputs"`
+	Outputs map[int]*Output `json:"outputs"`
+}
+
 type Input struct {
 	SenderAddr      string `json:"sender_addr"`
 	SenderPublicKey string `json:"sender_public_key"`
@@ -40,7 +44,6 @@ type Input struct {
 		Script string `json:"script"`
 		Amount int64  `json:"amount"`
 	} `json:"witness_utxo"`
-	RedeemScript *string `json:"redeem_script"`
 }
 
 type Output struct {
@@ -68,13 +71,37 @@ func NewPBST(
 	}
 }
 
-func CreatePSBT() (*psbt.Packet, error) {
+func (p *PSBT) Create() error {
+	if err := p.selectInscriptionsUTXOs(); err != nil {
+		return err
+	}
+	if err := p.calculatePlatformFee(); err != nil {
+		return err
+	}
+	if err := p.selectPaymentUTXOs(); err != nil {
+		return err
+	}
+	if err := p.createInscriptionInputs(); err != nil {
+		return err
+	}
+	if err := p.createInscriptionOutputs(); err != nil {
+		return err
+	}
+	if err := p.createPaymentInputs(); err != nil {
+		return err
+	}
+	if err := p.createPaymentsOutputs(); err != nil {
+		return err
+	}
 
-	// TODO: create all inputs
-	// TODO: create all outputs
-	// TODO: assemble PSBT
+	return nil
+}
 
-	return nil, nil
+func (p *PSBT) ToReq() *PSBTReqBody {
+	return &PSBTReqBody{
+		Inputs:  p.Inputs,
+		Outputs: p.Outputs,
+	}
 }
 
 func (p *PSBT) selectInscriptionsUTXOs() error {
@@ -295,7 +322,6 @@ func (p *PSBT) selectPaymentUTXOs() error {
 //		Script string `json:"script"`
 //		Amount int64  `json:"amount"`
 //	} `json:"witness_utxo"`
-//	RedeemScript   *string `json:"redeem_script"`
 //}
 
 func (p *PSBT) createInscriptionInputs() error {
@@ -379,7 +405,6 @@ func (p *PSBT) createInscriptionOutputs() error {
 //		Script string `json:"script"`
 //		Amount int64  `json:"amount"`
 //	} `json:"witness_utxo"`
-//	RedeemScript   *string `json:"redeem_script"`
 //}
 
 func (p *PSBT) createPaymentInputs() error {

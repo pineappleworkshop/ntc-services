@@ -40,7 +40,7 @@ var makerUTXOsAll = []*models.UTXO{
 		TxHash:          "fc5b52cff7b78fbade0c64a8046ff812f44e03d663ff97b0f4b20bd7f28e1ed6",
 		TxHashBigEndian: "d61e8ef2d70bb2f4b097ff63d6034ef412f86f04a8640cdeba8fb7f7cf525bfc",
 		TxIndex:         8879013170706161,
-		TxOutputN:       0,
+		TxOutputN:       1,
 		Value:           546,
 		ValueHex:        "0222",
 	},
@@ -168,61 +168,78 @@ func TestPBST(t *testing.T) {
 	fmt.Printf("Taker Wallet: %+v \n", trade.Taker.Wallet)
 	fmt.Println("++++++++++++++++++++++++++++")
 
-	psbt := NewPBST(trade, makerUTXOsAll, takerUTXOsAll, makerInscriptionsAll, takerInscriptionsAll)
-	assert.Len(t, psbt.MakerUTXOsAll, 2)
-	assert.Len(t, psbt.TakerUTXOsAll, 1)
-	assert.Len(t, psbt.MakerInscriptionsAll, 1)
-	assert.Len(t, psbt.TakerInscriptionsAll, 0)
+	p := NewPBST(trade, makerUTXOsAll, takerUTXOsAll, makerInscriptionsAll, takerInscriptionsAll)
+	assert.Len(t, p.MakerUTXOsAll, 2)
+	assert.Len(t, p.TakerUTXOsAll, 1)
+	assert.Len(t, p.MakerInscriptionsAll, 1)
+	assert.Len(t, p.TakerInscriptionsAll, 0)
 
-	err = psbt.selectInscriptionsUTXOs()
+	err = p.selectInscriptionsUTXOs()
 	assert.Nil(t, err)
-	assert.Len(t, psbt.MakerInscriptionUTXOs, 1)
-	assert.Len(t, psbt.MakerPaymentUTXOs, 0)
-	assert.Len(t, psbt.MakerUTXOsAll, 1)
-	assert.Len(t, psbt.TakerInscriptionUTXOs, 0)
-	assert.Len(t, psbt.TakerPaymentUTXOs, 0)
-	assert.Len(t, psbt.TakerUTXOsAll, 1)
+	assert.Len(t, p.MakerInscriptionUTXOs, 1)
+	assert.Len(t, p.MakerPaymentUTXOs, 0)
+	assert.Len(t, p.MakerUTXOsAll, 1)
+	assert.Len(t, p.TakerInscriptionUTXOs, 0)
+	assert.Len(t, p.TakerPaymentUTXOs, 0)
+	assert.Len(t, p.TakerUTXOsAll, 1)
 
-	err = psbt.calculatePlatformFee()
+	err = p.calculatePlatformFee()
 	assert.Nil(t, err)
-	assert.Equal(t, int64(100000), psbt.PlatformFee)
-	assert.Equal(t, int64(0), psbt.MakerPayment)
-	assert.Equal(t, int64(0), psbt.TakerPayment)
+	assert.Equal(t, int64(100000), p.PlatformFee)
+	assert.Equal(t, int64(0), p.MakerPayment)
+	assert.Equal(t, int64(0), p.TakerPayment)
 
-	err = psbt.selectPaymentUTXOs()
+	err = p.selectPaymentUTXOs()
 	assert.Nil(t, err)
-	assert.Len(t, psbt.MakerPaymentUTXOs, 1)
-	assert.Len(t, psbt.TakerPaymentUTXOs, 1)
-	assert.Equal(t, psbt.MakerPayment, int64(50000))
-	assert.Equal(t, psbt.TakerPayment, int64(10050000))
-	assert.Equal(t, psbt.MakerChange, int64(150000))
-	assert.Equal(t, psbt.TakerChange, int64(19950000))
+	assert.Len(t, p.MakerPaymentUTXOs, 1)
+	assert.Len(t, p.TakerPaymentUTXOs, 1)
+	assert.Equal(t, p.MakerPayment, int64(50000))
+	assert.Equal(t, p.TakerPayment, int64(10050000))
+	assert.Equal(t, p.MakerChange, int64(150000))
+	assert.Equal(t, p.TakerChange, int64(19950000))
 
-	err = psbt.createInscriptionInputs()
+	err = p.createInscriptionInputs()
 	assert.Nil(t, err)
-	assert.Len(t, psbt.Inputs, 1)
+	assert.Len(t, p.Inputs, 1)
 
-	err = psbt.createInscriptionOutputs()
+	err = p.createInscriptionOutputs()
 	assert.Nil(t, err)
-	assert.Len(t, psbt.Outputs, 1)
+	assert.Len(t, p.Outputs, 1)
 
-	err = psbt.createPaymentInputs()
+	err = p.createPaymentInputs()
 	assert.Nil(t, err)
-	assert.Len(t, psbt.Inputs, 3)
+	assert.Len(t, p.Inputs, 3)
 
-	err = psbt.createPaymentsOutputs()
+	err = p.createPaymentsOutputs()
 	assert.Nil(t, err)
-	assert.Len(t, psbt.Outputs, 6)
+	assert.Len(t, p.Outputs, 6)
 
 	fmt.Println("==================Inputs")
-	for i, out := range psbt.Inputs {
+	for i, out := range p.Inputs {
 		fmt.Printf("Index: %v - Input%+v \n", i, out)
 	}
 	fmt.Println("=========================")
 
 	fmt.Println("==================Outputs")
-	for i, out := range psbt.Outputs {
+	for i, out := range p.Outputs {
 		fmt.Printf("Index: %v - Output%+v \n", i, out)
 	}
 	fmt.Println("=========================")
+
+	// TODO: add assertions
+
+	pCreate := NewPBST(trade, makerUTXOsAll, takerUTXOsAll, makerInscriptionsAll, takerInscriptionsAll)
+	assert.Len(t, pCreate.MakerUTXOsAll, 2)
+	assert.Len(t, pCreate.TakerUTXOsAll, 1)
+	assert.Len(t, pCreate.MakerInscriptionsAll, 1)
+	assert.Len(t, pCreate.TakerInscriptionsAll, 0)
+
+	err = pCreate.Create()
+	assert.Nil(t, err)
+	assert.Equal(t, p, pCreate)
+
+	req := pCreate.ToReq()
+	assert.NotNil(t, req)
+	assert.Equal(t, req.Inputs, pCreate.Inputs)
+	assert.Equal(t, req.Outputs, pCreate.Outputs)
 }
