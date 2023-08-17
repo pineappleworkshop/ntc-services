@@ -14,7 +14,6 @@ import (
 type Wallet struct {
 	ID                 primitive.ObjectID `json:"id" bson:"_id"`
 	Type               string             `json:"wallet_type" bson:"wallet_type"`
-	CardinalAddr       string             `json:"cardinal_addr" bson:"cardinal_addr"`
 	TapRootAddr        string             `json:"tap_root_addr" bson:"tap_root_addr"`
 	TapRootPublicKey   string             `json:"tap_root_public_key" bson:"tap_root_public_key"`
 	SegwitAddr         string             `json:"segwit_addr" bson:"segwit_addr"`

@@ -14,7 +14,6 @@ var now = time.Now().Unix()
 var makerWallet = &models.Wallet{
 	ID:                 primitive.NewObjectID(),
 	Type:               "unisat",
-	CardinalAddr:       "",
 	TapRootAddr:        "bc1p0t40pgryukh88rhwx4ffzt28cjmhxnpm56s3382vyy22zek5wpmq8rps2l",
 	SegwitAddr:         "",
 	CreatedAt:          now,
@@ -102,7 +101,6 @@ var maker = &models.Side{
 var takerWallet = &models.Wallet{
 	ID:                 primitive.NewObjectID(),
 	Type:               "unisat",
-	CardinalAddr:       "",
 	TapRootAddr:        "bc1pxy8gsmgu5zzv0ytj7ae4pgnqkcdwaqas7xmc4szcg70zqwsj4rxss2tvhu",
 	SegwitAddr:         "",
 	CreatedAt:          now,
