@@ -281,49 +281,6 @@ func PostMakerByTradeID(c echo.Context) error {
 	return c.JSON(http.StatusOK, trade)
 }
 
-/*
-?status={enum,csv}
-*/
-
-func GetTrades(c echo.Context) error {
-	// TODO: get trades by query
-	status := c.QueryParam("status")
-	statusValues := strings.Split(status, ",")
-	// TODO: paginated response
-	page, limit, err := parsePagination(c)
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err)
-	}
-	trades, total, err := models.GetTradesPaginatedByStatus(page, limit, statusValues)
-	if err != nil {
-		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, err.Error())
-	}
-
-	resp := models.Trades{
-		Page:   page,
-		Limit:  limit,
-		Total:  total,
-		Trades: trades,
-	}
-
-	return c.JSON(http.StatusOK, resp)
-}
-
-func GetTradeByID(c echo.Context) error {
-	trade, err := models.GetTradeByID(c, c.Param("id"))
-	if err != nil {
-		if err.Error() == stores.MONGO_ERR_NOT_FOUND {
-			c.Logger().Error(err)
-			return c.JSON(http.StatusNotFound, err.Error())
-		}
-		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, err.Error())
-	}
-
-	return c.JSON(http.StatusOK, trade)
-}
-
 /* Request Body
 {
   "wallet_id": "bson_id",
@@ -348,6 +305,7 @@ func PostOfferByTradeID(c echo.Context) error {
 		c.Logger().Error(err)
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
+
 	// TODO: find & verify trade is in correct status
 	trade, err := models.GetTradeByID(c, c.Param("id"))
 	if err != nil {
@@ -380,26 +338,76 @@ func PostOfferByTradeID(c echo.Context) error {
 	return c.JSON(http.StatusOK, offer)
 }
 
-/* Query Params
+/*
 ?status={enum,csv}
 */
 
-func GetOffersByTradeID(c echo.Context) error {
-	// TODO: get trades for trade by query
-	// TODO: paginated response
-	tradeID := c.Param("id")
+func GetTrades(c echo.Context) error {
+	// Get trades by query and return paginated response
 	status := c.QueryParam("status")
 	statusValues := strings.Split(status, ",")
 	page, limit, err := parsePagination(c)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, err)
 	}
-	offers, total, err := models.GetOffersPaginatedByTradeID(page, limit, tradeID, statusValues)
+	trades, total, err := models.GetTradesPaginatedByStatus(page, limit, statusValues)
 	if err != nil {
 		c.Logger().Error(err)
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
+	resp := models.Trades{
+		Page:   page,
+		Limit:  limit,
+		Total:  total,
+		Trades: trades,
+	}
 
+	return c.JSON(http.StatusOK, resp)
+}
+
+func GetTradeByID(c echo.Context) error {
+	// Get trade by tradeID and return response
+	trade, err := models.GetTradeByID(c, c.Param("id"))
+	if err != nil {
+		if err.Error() == stores.MONGO_ERR_NOT_FOUND {
+			c.Logger().Error(err)
+			return c.JSON(http.StatusNotFound, err.Error())
+		}
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, trade)
+}
+
+/* Query Params
+?status={enum,csv}
+*/
+
+func GetOffersByTradeID(c echo.Context) error {
+	// Get trade by ID to ensure trade exists
+	trade, err := models.GetTradeByID(c, c.Param("id"))
+	if err != nil {
+		if err.Error() == stores.MONGO_ERR_NOT_FOUND {
+			c.Logger().Error(err)
+			return c.JSON(http.StatusNotFound, err.Error())
+		}
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	// Get offers by Trade.ID and return response
+	status := c.QueryParam("status")
+	statusValues := strings.Split(status, ",")
+	page, limit, err := parsePagination(c)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err)
+	}
+	offers, total, err := models.GetOffersPaginatedByTradeID(page, limit, trade.ID.Hex(), statusValues)
+	if err != nil {
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
 	resp := models.Offers{
 		Page:   page,
 		Limit:  limit,
