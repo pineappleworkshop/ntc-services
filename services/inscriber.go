@@ -1,13 +1,14 @@
 package services
 
 import (
+	"ntc-services/config"
+
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/rpcclient"
 	"github.com/btcsuite/btcd/wire"
 	log "github.com/sirupsen/logrus"
-	"ntc-services/config"
 )
 
 type Insciber struct {
