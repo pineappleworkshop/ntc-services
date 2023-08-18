@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -149,6 +150,10 @@ func (bis *BestInSlot) get(endpoint string) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New("Best In Slot response was not 200")
+	}
+
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
@@ -169,6 +174,10 @@ func (bis *BestInSlot) getV3(endpoint string) ([]byte, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New("Best In Slot response was not 200")
+	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {

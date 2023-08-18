@@ -16,8 +16,8 @@ type Side struct {
 	Wallet             *Wallet            `json:"wallet" bson:"-"`
 	InscriptionNumbers []int64            `json:"inscription_numbers" bson:"inscription_numbers"`
 	BTC                int64              `json:"btc" bson:"btc"`
-	Inscriptions       []*Inscription     `json:"inscriptions" bson:"inscriptions"` // inscriptions in side
-	//UTXOs              []*UTXO            `json:"utxos" bson:"utxos"`               // maker will not select UTXOs
+	Inscriptions       []*Inscription     `json:"inscriptions" bson:"inscriptions"` // inscriptions for side
+	//PaymentUTXOs       []*UTXO            `json:"payment_utxos" bson:"payment_utxos"` // payment UTXOs for side
 	CreatedAt int64  `json:"created_at" bson:"created_at"`
 	UpdatedAt *int64 `json:"updated_at" bson:"updated_at"`
 }
@@ -63,8 +63,16 @@ func GetSideByID(id string) (*Side, error) {
 	result := collection.FindOne(context.TODO(), filter)
 	var side *Side
 	if err := result.Decode(&side); err != nil {
+		// TODO: log
 		return nil, err
 	}
+
+	wallet, err := GetWalletByID(side.WalletID.Hex())
+	if err != nil {
+		// TODO: log
+		return nil, err
+	}
+	side.Wallet = wallet
 
 	return side, nil
 }

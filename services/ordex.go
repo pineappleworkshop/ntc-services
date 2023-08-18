@@ -3,6 +3,7 @@ package services
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -27,6 +28,20 @@ func NewOrdex() (*Ordex, error) {
 			Timeout: time.Second * 30,
 		},
 	}, nil
+}
+
+func (o *Ordex) GetInscriptionByNumber(num int64) (interface{}, error) {
+	resp, err := o.get(fmt.Sprintf("/inscriptions/byNumber?number=%v", num))
+	if err != nil {
+		return nil, err
+	}
+
+	var body interface{}
+	if err := json.Unmarshal(resp, &body); err != nil {
+		return nil, err
+	}
+
+	return body, nil
 }
 
 func (o *Ordex) GetInscriptionById(id string) (interface{}, error) {
@@ -81,6 +96,10 @@ func (o *Ordex) get(endpoint string) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New("Ordex response was not 200")
+	}
+
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
@@ -101,6 +120,10 @@ func (o *Ordex) post(endpoint string, body []byte) ([]byte, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New("Ordex response was not 200")
+	}
 
 	responseBody, err := ioutil.ReadAll(resp.Body)
 	if err != nil {

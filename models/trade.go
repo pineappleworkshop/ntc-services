@@ -18,9 +18,9 @@ type TradeReqBody struct {
 }
 
 type TradeMakerReqBody struct {
-	WalletID           string   `json:"wallet_id" bson:"wallet_id"`
-	Btc                int64    `json:"btc" bson:"btc"`
-	InscriptionNumbers []string `json:"inscription_numbers" bson:"inscription_numbers"`
+	WalletID           string  `json:"wallet_id" bson:"wallet_id"`
+	BTC                int64   `json:"btc" bson:"btc"`
+	InscriptionNumbers []int64 `json:"inscription_numbers" bson:"inscription_numbers"`
 }
 
 type Trades struct {
@@ -86,6 +86,16 @@ func (t *Trade) Update(c echo.Context) error {
 	return nil
 }
 
+func (t *Trade) SetStatus(status string) error {
+	now := time.Now().Unix()
+	t.StatusChangedAt = &now
+
+	// TODO: validate status
+	t.Status = status
+
+	return nil
+}
+
 func GetTradesByStatus(c echo.Context, status string) ([]*Trade, error) {
 	filter := bson.M{"status": status}
 	collection := stores.DB.Mongo.Client.Database(stores.DB_NAME).Collection(stores.DB_COLLECTION_TRADES)
@@ -107,7 +117,6 @@ func GetTradesByStatus(c echo.Context, status string) ([]*Trade, error) {
 
 func GetTradesPaginatedByStatus(page, limit int64, status []string) ([]*Trade, int64, error) {
 	opts := options.Find().SetLimit(limit).SetSkip(page - 1)
-
 	var filter bson.M
 	if len(status) > 0 && status[0] != "" {
 		filter = bson.M{"status": bson.M{"$in": status}}
@@ -147,6 +156,22 @@ func GetTradeByID(c echo.Context, idStr string) (*Trade, error) {
 	if err := collection.FindOne(context.TODO(), filter).Decode(&trade); err != nil {
 		c.Logger().Error(err)
 		return nil, err
+	}
+
+	maker, err := GetSideByID(trade.MakerID.Hex())
+	if err != nil {
+		c.Logger().Error(err)
+		return nil, err
+	}
+	trade.Maker = maker
+
+	if trade.TakerID != nil {
+		taker, err := GetSideByID(trade.TakerID.Hex())
+		if err != nil {
+			c.Logger().Error(err)
+			return nil, err
+		}
+		trade.Taker = taker
 	}
 
 	return trade, nil

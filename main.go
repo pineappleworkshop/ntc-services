@@ -70,6 +70,7 @@ func initPublicRoutes(e *echo.Echo) {
 	e.POST("/trades", handlers.PostTrades)
 	e.POST("/trades/:id/maker", handlers.PostMakerByTradeID)
 	e.GET("/trades", handlers.GetTrades)
+	e.GET("/trades/:id", handlers.GetTradeByID)
 	e.POST("/trades/:id/offers", handlers.PostOfferByTradeID)
 	e.GET("/trades/:id/offers", handlers.GetOffersByTradeID)
 	e.POST("/trades/:id/orders/accept", handlers.PostAcceptOfferByTradeID)

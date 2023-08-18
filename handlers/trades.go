@@ -2,15 +2,16 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"github.com/labstack/echo/v4"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"net/http"
 	"ntc-services/models"
 	"ntc-services/services"
 	"ntc-services/stores"
+	"strconv"
 	"strings"
-
-	"github.com/labstack/echo/v4"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // TODO: Should we be using signatures to do RBAC
@@ -25,18 +26,21 @@ import (
 */
 
 func PostTrades(c echo.Context) error {
-	// TODO: find & verify wallet
+	// Parse json body
 	tradeReqBody := models.NewTradeReqBody()
 	if err := c.Bind(tradeReqBody); err != nil {
 		c.Logger().Error(err.Error())
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
+
+	// Find & verify wallet
 	wallet, err := models.GetWalletByAddrAndWalletType(tradeReqBody.TapRootAddr, tradeReqBody.SegwitAddr, tradeReqBody.WalletType)
 	if err != nil {
-		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, err.Error())
+		if err.Error() != stores.MONGO_ERR_NOT_FOUND {
+			c.Logger().Error(err)
+			return c.JSON(http.StatusInternalServerError, err.Error())
+		}
 	}
-
 	if wallet == nil {
 		wallet = models.NewWallet()
 		wallet.TapRootAddr = tradeReqBody.TapRootAddr
@@ -46,13 +50,15 @@ func PostTrades(c echo.Context) error {
 			return c.JSON(http.StatusInternalServerError, err.Error())
 		}
 	}
-	// TODO: create side & store
+
+	// Create side & store
 	side := models.NewSide(wallet.ID)
 	if err := side.Create(c); err != nil {
 		c.Logger().Error(err)
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
-	// TODO: create trade & store
+
+	// Create trade & store
 	trade := models.NewTrade(side.ID)
 	trade.Maker = side
 	if err := trade.Create(c); err != nil {
@@ -60,7 +66,7 @@ func PostTrades(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(http.StatusCreated, trade)
+	return c.JSON(http.StatusOK, trade)
 }
 
 /* Request Body
@@ -72,9 +78,7 @@ func PostTrades(c echo.Context) error {
 */
 
 func PostMakerByTradeID(c echo.Context) error {
-	tradeID := c.Param("id")
-
-	// TODO: find & verify wallet
+	// Find & verify wallet
 	tradeMakerReqBody := models.NewTradeMakerReqBody()
 	if err := c.Bind(tradeMakerReqBody); err != nil {
 		c.Logger().Error(err.Error())
@@ -89,8 +93,9 @@ func PostMakerByTradeID(c echo.Context) error {
 		c.Logger().Error(err)
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
-	// TODO: find trade and ensure in correct state (CREATED)
-	trade, err := models.GetTradeByID(c, tradeID)
+
+	// Find trade and ensure in correct state (CREATED)
+	trade, err := models.GetTradeByID(c, c.Param("id"))
 	if err != nil {
 		if err.Error() == stores.MONGO_ERR_NOT_FOUND {
 			c.Logger().Error(err)
@@ -100,10 +105,12 @@ func PostMakerByTradeID(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 	if trade.Status != "CREATED" {
-		c.Logger().Error("Invalid Status: ", trade.Status)
-		return c.JSON(http.StatusNotFound, "Invalid Status")
+		err := errors.New(fmt.Sprintf("trade.status is not CREATED, status is: %v", trade.Status))
+		c.Logger().Error(err)
+		return c.JSON(http.StatusBadRequest, err.Error())
 	}
-	// TODO: find side and ensure requester is correct by wallet_id (and perhaps more)
+
+	// Find side and ensure requester is correct by wallet_id (and perhaps more)
 	maker, err := models.GetSideByID(trade.MakerID.Hex())
 	if err != nil {
 		if err.Error() == stores.MONGO_ERR_NOT_FOUND {
@@ -115,25 +122,138 @@ func PostMakerByTradeID(c echo.Context) error {
 	}
 	if maker.WalletID != wallet.ID {
 		c.Logger().Error("Maker Wallet does not match Wallet ID")
-		return c.JSON(http.StatusConflict, "Maker Wallet does not match Wallet ID")
-	}
-	// TODO: query ordex for extra inscription information (floor price, previous tx, more...)
-	// look for another endpoint called get inscriptions by id (multiple same time)
-	response, err := services.ORDEX.GetInscriptionsByIds(tradeMakerReqBody.InscriptionNumbers)
-	if err != nil {
-		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, err)
-	}
-	// fmt.Printf("inscriptions: %+v\n", inscriptions)
-	// Format response as readable JSON
-	formattedJSON, err := formatJSON(response)
-	if err != nil {
-		fmt.Println("Error formatting JSON:", err)
-		return c.JSON(http.StatusInternalServerError, err)
+		return c.JSON(http.StatusBadRequest, "Maker Wallet does not match Wallet ID")
 	}
 
-	fmt.Println("Formatted JSON:")
-	fmt.Println(formattedJSON)
+	// Get inscriptions by inscription number and create a list of inscriptionIDs
+	//for _, inscriptionNum := range tradeMakerReqBody.InscriptionNumbers {
+	//	inscription, err := services.ORDEX.GetInscriptionByNumber(inscriptionNum)
+	//	if err != nil {
+	//		c.Logger().Error(err)
+	//		return c.JSON(http.StatusInternalServerError, err.Error())
+	//	}
+	//	fmt.Printf("%+v \n", inscription)
+	//}
+
+	// Get maker inscriptions for trade, ensure maker owns those inscriptions, & append to maker side
+	// TODO: cover wallets that have inscriptions greater then 100 (pagination)
+	makerInscriptions, err := services.BESTINSLOT.GetInscriptionsByWalletAddr(
+		c,
+		maker.Wallet.TapRootAddr,
+		100,
+		1,
+	)
+	if err != nil {
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+	found := map[int64]bool{}
+	for _, inscriptionNum := range tradeMakerReqBody.InscriptionNumbers {
+		found[inscriptionNum] = false
+		for _, makerInscription := range makerInscriptions.Data {
+			if makerInscription.InscriptionNumber == inscriptionNum {
+				found[inscriptionNum] = true
+			}
+		}
+	}
+	for k, v := range found {
+		if v == false {
+			err := errors.New(
+				fmt.Sprintf("Inscription Number: %v not owned by Wallet: %v", k, trade.MakerID.Hex()),
+			)
+			c.Logger().Error(err)
+			return c.JSON(http.StatusBadRequest, err.Error())
+		}
+	}
+	inscriptions := []*models.Inscription{}
+	for _, makerInscription := range makerInscriptions.Data {
+		inscription := models.ParseBISInscription(makerInscription)
+		inscriptions = append(inscriptions, inscription)
+	}
+	maker.Inscriptions = inscriptions
+	maker.InscriptionNumbers = tradeMakerReqBody.InscriptionNumbers
+
+	// Ensure maker has enough BTC for trade
+	// TODO: revisit to harden logic everywhere
+	var makerPaymentAddr string
+	if trade.Maker.Wallet.Type == "unisat" {
+		makerPaymentAddr = trade.Maker.Wallet.TapRootAddr
+	} else { // TODO: harden
+		makerPaymentAddr = trade.Maker.Wallet.SegwitAddr
+	}
+	makerUTXOs, err := services.BLOCKCHAININFO.GetUTXOsForAddr(makerPaymentAddr)
+	if err != nil {
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+	var makerPaymentUTXOs []*models.UTXO
+	for _, inscription := range maker.Inscriptions {
+		inscriptionIDS := strings.Split(inscription.Satpoint, ":")
+		if len(inscriptionIDS) != 3 {
+			err := errors.New(
+				fmt.Sprintf("error parsing paymentUTXOs for maker"),
+			)
+			c.Logger().Error(err)
+			return c.JSON(http.StatusBadRequest, err.Error())
+		}
+		for _, utxoI := range makerUTXOs["unspent_outputs"].([]interface{}) {
+			utxo := new(models.UTXO)
+			if err := utxo.Parse(utxoI.(map[string]interface{})); err != nil {
+				err := errors.New(
+					fmt.Sprintf("could not parse utxo from blockchain info in data schema"),
+				)
+				c.Logger().Error(err)
+				return c.JSON(http.StatusBadRequest, err.Error())
+			}
+
+			found := false
+			if utxo.TxHashBigEndian == inscriptionIDS[0] {
+				inscriptionIndex, err := strconv.Atoi(inscriptionIDS[1])
+				if err != nil {
+					err := errors.New(
+						fmt.Sprintf("could not parse inscription index for maker"),
+					)
+					c.Logger().Error(err)
+					return c.JSON(http.StatusBadRequest, err.Error())
+				}
+				if utxo.TxOutputN == int64(inscriptionIndex) {
+					found = true
+				}
+			}
+			if !found {
+				makerPaymentUTXOs = append(makerPaymentUTXOs, utxo)
+			}
+		}
+	}
+	makerAvailableBTC := int64(0)
+	for _, utxo := range makerPaymentUTXOs {
+		makerAvailableBTC = makerAvailableBTC + utxo.Value
+	}
+	if makerAvailableBTC < tradeMakerReqBody.BTC {
+		err := errors.New(fmt.Sprintf("maker does not have enough available BTC for trade"))
+		c.Logger().Error(err)
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+	maker.BTC = tradeMakerReqBody.BTC
+	//maker.PaymentUTXOs = append(maker.PaymentUTXOs, makerPaymentUTXOs...)
+
+	//// TODO: query ordex for extra inscription information (floor price, previous tx, more...)
+	//// look for another endpoint called get inscriptions by id (multiple same time)
+	//response, err := services.ORDEX.GetInscriptionsByIds(tradeMakerReqBody.InscriptionNumbers)
+	//if err != nil {
+	//	c.Logger().Error(err)
+	//	return c.JSON(http.StatusInternalServerError, err)
+	//}
+	//// fmt.Printf("inscriptions: %+v\n", inscriptions)
+	//// Format response as readable JSON
+	//formattedJSON, err := formatJSON(response)
+	//if err != nil {
+	//	fmt.Println("Error formatting JSON:", err)
+	//	return c.JSON(http.StatusInternalServerError, err)
+	//}
+	//
+	//fmt.Println("Formatted JSON:")
+	//fmt.Println(formattedJSON)
 
 	// for _, value := range tradeMakerReqBody.InscriptionNumbers {
 	// 	inscription, err := services.BESTINSLOT.GetInscriptionById(c, value)
@@ -144,21 +264,28 @@ func PostMakerByTradeID(c echo.Context) error {
 	// 	fmt.Printf("inscription: %+v\n", inscription)
 	// }
 
-	// TODO: validate that assets still belong to maker wallet
-	// TODO: update side
-	maker.BTC = tradeMakerReqBody.Btc
+	// update side
 	if err := maker.Update(c); err != nil {
 		c.Logger().Error(err)
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
-	return c.JSON(http.StatusCreated, maker)
+	if err := trade.SetStatus("OPEN"); err != nil {
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+	if err := trade.Update(c); err != nil {
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+	trade.Maker = maker
+
+	return c.JSON(http.StatusOK, trade)
 }
 
 /*
-	Query Params
-
 ?status={enum,csv}
 */
+
 func formatJSON(data interface{}) (string, error) {
 	prettyJSON, err := json.MarshalIndent(data, "", "    ")
 	if err != nil {
@@ -190,6 +317,20 @@ func GetTrades(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, resp)
+}
+
+func GetTradeByID(c echo.Context) error {
+	trade, err := models.GetTradeByID(c, c.Param("id"))
+	if err != nil {
+		if err.Error() == stores.MONGO_ERR_NOT_FOUND {
+			c.Logger().Error(err)
+			return c.JSON(http.StatusNotFound, err.Error())
+		}
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, trade)
 }
 
 /* Request Body
@@ -247,7 +388,7 @@ func PostOfferByTradeID(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(http.StatusCreated, offer)
+	return c.JSON(http.StatusOK, offer)
 }
 
 /* Query Params

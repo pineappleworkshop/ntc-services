@@ -2,6 +2,7 @@ package services
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -57,6 +58,10 @@ func (bci *BlockChainInfo) get(endpoint string) ([]byte, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New("Blockchain Info response was not 200")
+	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
