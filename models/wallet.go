@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/btcsuite/btcd/btcutil"
+	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -19,10 +20,12 @@ type Wallet struct {
 	TapRootPublicKey   string             `json:"tap_root_public_key" bson:"tap_root_public_key"`
 	SegwitAddr         string             `json:"segwit_addr" bson:"segwit_addr"`
 	SegwitPublicKey    string             `json:"segwit_public_key" bson:"segwit_public_key"`
-	CreatedAt          int64              `json:"created_at" bson:"created_at"`
-	UpdatedAt          *int64             `json:"updated_at" bson:"updated_at"`
+	Inscriptions       []*Inscription     `json:"inscriptions,omitempty" bson:"-"`
+	UTXOs              []*UTXO            `json:"utxos,omitempty" bson:"-"`
 	LastConnectedAt    *int64             `json:"last_connected_at" bson:"last_connected_at"`
 	LastConnectedBlock *int64             `json:"last_connected_block" bson:"last_connected_block"`
+	CreatedAt          int64              `json:"created_at" bson:"created_at"`
+	UpdatedAt          *int64             `json:"updated_at" bson:"updated_at"`
 }
 
 func NewWallet() *Wallet {
@@ -41,25 +44,29 @@ func IsValidWalletType(walletType string) bool {
 	}
 }
 
-func (w *Wallet) Validate() error {
+func (w *Wallet) Validate(c echo.Context) error {
 	if w.Type == "xverse" || w.Type == "hiro" {
 		if w.SegwitAddr == "" || w.SegwitPublicKey == "" {
-			// TODO log
-			return errors.New("wallet segwit address & segwit public key cannot be blank")
+			err := errors.New("wallet segwit address & segwit public key cannot be blank")
+			c.Logger().Error(err)
+			return err
 		}
 	}
 	if w.TapRootAddr == "" || w.TapRootPublicKey == "" {
-		// TODO log
-		return errors.New("wallet taproot address & taproot public key cannot be blank")
+		err := errors.New("wallet taproot address & taproot public key cannot be blank")
+		c.Logger().Error(err)
+		return err
 	}
 
 	if valid := validateBTCAddress(w.SegwitAddr); !valid {
-		// TODO log
-		return errors.New("seqwit address is not formatted properly")
+		err := errors.New("seqwit address is not formatted properly")
+		c.Logger().Error(err)
+		return err
 	}
 	if valid := validateBTCAddress(w.TapRootAddr); !valid {
-		// TODO log
-		return errors.New("taproot address is not formatted properly")
+		err := errors.New("seqwit address is not formatted properly")
+		c.Logger().Error(err)
+		return err
 	}
 
 	return nil
@@ -87,23 +94,26 @@ func (w *Wallet) Update() error {
 	return nil
 }
 
-func GetWalletByID(id string) (*Wallet, error) {
-	idHex, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return nil, err
-	}
+func GetWallets(c echo.Context) ([]*Wallet, error) {
+	filter := bson.M{}
 	collection := stores.DB.Mongo.Client.Database(stores.DB_NAME).Collection(stores.DB_COLLECTION_WALLETS)
-	filter := bson.M{"_id": idHex}
-	result := collection.FindOne(context.TODO(), filter)
-	var wallet *Wallet
-	if err := result.Decode(&wallet); err != nil {
+
+	cursor, err := collection.Find(context.TODO(), filter)
+	if err != nil {
+		c.Logger().Error(err)
 		return nil, err
 	}
 
-	return wallet, nil
+	var wallets []*Wallet
+	if err := cursor.All(context.TODO(), &wallets); err != nil {
+		c.Logger().Error(err)
+		return nil, err
+	}
+
+	return wallets, nil
 }
 
-func GetWalletBy(id string) (*Wallet, error) {
+func GetWalletByID(id string) (*Wallet, error) {
 	idHex, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return nil, err

@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"net/http"
 	"ntc-services/models"
+	"ntc-services/services"
 	"ntc-services/stores"
+	"strconv"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 )
@@ -36,7 +39,7 @@ func PostWallets(c echo.Context) error {
 		c.Logger().Error(err)
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
-	if err := wallet.Validate(); err != nil {
+	if err := wallet.Validate(c); err != nil {
 		c.Logger().Error(err)
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
@@ -71,7 +74,85 @@ func PostWallets(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(http.StatusCreated, wallet)
+	return c.JSON(http.StatusOK, wallet)
+}
+
+func GetWallets(c echo.Context) error {
+	wallets, err := models.GetWallets(c)
+	if err != nil {
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, wallets)
+}
+
+func GetWalletByID(c echo.Context) error {
+	// Get wallet by id
+	wallet, err := models.GetWalletByID(c.Param("id"))
+	if err != nil {
+		if err.Error() != stores.MONGO_ERR_NOT_FOUND {
+			c.Logger().Error(err)
+			return c.JSON(http.StatusInternalServerError, err.Error())
+		}
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+
+	// Get all wallet inscriptions
+	// TODO: cover wallets that have inscriptions greater then 100 (pagination)
+	makerInscriptions, err := services.BESTINSLOT.GetInscriptionsByWalletAddr(
+		c,
+		wallet.TapRootAddr,
+		100,
+		1,
+	)
+	inscriptions := []*models.Inscription{}
+	for _, makerInscription := range makerInscriptions.Data {
+		inscription := models.ParseBISInscription(makerInscription)
+		inscriptions = append(inscriptions, inscription)
+	}
+	wallet.Inscriptions = inscriptions
+
+	// Get all wallet utxos
+	var makerPaymentAddr string
+	if wallet.Type == "unisat" {
+		makerPaymentAddr = wallet.TapRootAddr
+	} else { // TODO: harden
+		makerPaymentAddr = wallet.SegwitAddr
+	}
+	utxosResp, err := services.BLOCKCHAININFO.GetUTXOsForAddr(makerPaymentAddr)
+	if err != nil {
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+	for _, utxoI := range utxosResp["unspent_outputs"].([]interface{}) {
+		utxo := new(models.UTXO)
+		if err := utxo.Parse(utxoI.(map[string]interface{})); err != nil {
+			err := errors.New(
+				fmt.Sprintf("could not parse utxo from blockchain info in data schema"),
+			)
+			c.Logger().Error(err)
+			return c.JSON(http.StatusBadRequest, err.Error())
+		}
+		for _, inscription := range wallet.Inscriptions {
+			satpointS := strings.Split(inscription.Satpoint, ":")
+			if satpointS[0] == utxo.TxHashBigEndian {
+				index, err := strconv.Atoi(satpointS[1])
+				if err != nil {
+					c.Logger().Error(err)
+					return c.JSON(http.StatusBadRequest, err.Error())
+				}
+				if utxo.TxOutputN == int64(index) {
+					utxo.IsInscription = true
+					utxo.InscriptionNum = &inscription.InscriptionNumber
+				}
+			}
+		}
+		wallet.UTXOs = append(wallet.UTXOs, utxo)
+	}
+
+	return c.JSON(http.StatusOK, wallet)
 }
 
 func GetWalletByAddr(c echo.Context) error {

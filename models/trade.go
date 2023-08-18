@@ -89,7 +89,6 @@ func (t *Trade) Update(c echo.Context) error {
 func (t *Trade) SetStatus(status string) error {
 	now := time.Now().Unix()
 	t.StatusChangedAt = &now
-
 	// TODO: validate status
 	t.Status = status
 

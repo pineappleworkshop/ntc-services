@@ -17,9 +17,9 @@ type Side struct {
 	InscriptionNumbers []int64            `json:"inscription_numbers" bson:"inscription_numbers"`
 	BTC                int64              `json:"btc" bson:"btc"`
 	Inscriptions       []*Inscription     `json:"inscriptions" bson:"inscriptions"` // inscriptions for side
+	CreatedAt          int64              `json:"created_at" bson:"created_at"`
+	UpdatedAt          *int64             `json:"updated_at" bson:"updated_at"`
 	//PaymentUTXOs       []*UTXO            `json:"payment_utxos" bson:"payment_utxos"` // payment UTXOs for side
-	CreatedAt int64  `json:"created_at" bson:"created_at"`
-	UpdatedAt *int64 `json:"updated_at" bson:"updated_at"`
 }
 
 func NewSide(walletID primitive.ObjectID) *Side {
@@ -29,6 +29,8 @@ func NewSide(walletID primitive.ObjectID) *Side {
 		CreatedAt: time.Now().Unix(),
 	}
 }
+
+// TODO: implement validate function to validate req body and fields set
 
 func (s *Side) Create(c echo.Context) error {
 	collection := stores.DB.Mongo.Client.Database(stores.DB_NAME).Collection(stores.DB_COLLECTION_SIDES)

@@ -10,6 +10,7 @@ type UTXO struct {
 	Confirmations   int64   `json:"confirmations" bson:"confirmations"`
 	TxIndex         float64 `json:"tx_index" bson:"tx_index"`
 	IsInscription   bool    `json:"is_inscription" bson:"is_inscription"`
+	InscriptionNum  *int64  `json:"inscription_num" bson:"inscription_num"`
 }
 
 func (utxo *UTXO) Parse(utxoM map[string]interface{}) error {

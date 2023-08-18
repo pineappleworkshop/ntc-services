@@ -13,9 +13,6 @@ import (
 	"strings"
 )
 
-// TODO: Should we be using signatures to do RBAC
-// TODO: other stuff
-
 /* Request Body
 {
   "wallet_type": "hiro" | "xverse" | "unisat",

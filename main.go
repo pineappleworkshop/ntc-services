@@ -61,6 +61,8 @@ func initPublicRoutes(e *echo.Echo) {
 
 	// wallets
 	e.POST("/wallets", handlers.PostWallets)
+	e.GET("/wallets", handlers.GetWallets)
+	e.GET("/wallets/:id/assets", handlers.GetWalletByID)
 	e.GET("/wallets/:addr", handlers.GetWalletByAddr)
 	e.POST("/wallets/connected", handlers.PostWalletsConnected)
 	//e.GET("/wallets/:id/inscriptions", handlers.GetInscriptions) // TODO: implement
