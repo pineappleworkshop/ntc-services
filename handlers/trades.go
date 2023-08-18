@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/labstack/echo/v4"
@@ -286,14 +285,6 @@ func PostMakerByTradeID(c echo.Context) error {
 ?status={enum,csv}
 */
 
-func formatJSON(data interface{}) (string, error) {
-	prettyJSON, err := json.MarshalIndent(data, "", "    ")
-	if err != nil {
-		return "", err
-	}
-	return string(prettyJSON), nil
-}
-
 func GetTrades(c echo.Context) error {
 	// TODO: get trades by query
 	status := c.QueryParam("status")
@@ -342,8 +333,6 @@ func GetTradeByID(c echo.Context) error {
 */
 
 func PostOfferByTradeID(c echo.Context) error {
-	tradeID := c.Param("id")
-
 	// TODO: find & verify wallet
 	tradeMakerReqBody := models.NewTradeMakerReqBody()
 	if err := c.Bind(tradeMakerReqBody); err != nil {
@@ -360,7 +349,7 @@ func PostOfferByTradeID(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 	// TODO: find & verify trade is in correct status
-	trade, err := models.GetTradeByID(c, tradeID)
+	trade, err := models.GetTradeByID(c, c.Param("id"))
 	if err != nil {
 		if err.Error() == stores.MONGO_ERR_NOT_FOUND {
 			c.Logger().Error(err)
@@ -419,7 +408,6 @@ func GetOffersByTradeID(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, resp)
-
 }
 
 /*

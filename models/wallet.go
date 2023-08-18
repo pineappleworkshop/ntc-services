@@ -2,14 +2,14 @@ package models
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"ntc-services/stores"
-	"time"
-
 	"github.com/btcsuite/btcd/btcutil"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"ntc-services/stores"
+	"time"
 )
 
 type Wallet struct {
@@ -26,7 +26,6 @@ type Wallet struct {
 }
 
 func NewWallet() *Wallet {
-
 	return &Wallet{
 		ID:        primitive.NewObjectID(),
 		CreatedAt: time.Now().Unix(),
@@ -40,6 +39,30 @@ func IsValidWalletType(walletType string) bool {
 	default:
 		return false
 	}
+}
+
+func (w *Wallet) Validate() error {
+	if w.Type == "xverse" || w.Type == "hiro" {
+		if w.SegwitAddr == "" || w.SegwitPublicKey == "" {
+			// TODO log
+			return errors.New("wallet segwit address & segwit public key cannot be blank")
+		}
+	}
+	if w.TapRootAddr == "" || w.TapRootPublicKey == "" {
+		// TODO log
+		return errors.New("wallet taproot address & taproot public key cannot be blank")
+	}
+
+	if valid := validateBTCAddress(w.SegwitAddr); !valid {
+		// TODO log
+		return errors.New("seqwit address is not formatted properly")
+	}
+	if valid := validateBTCAddress(w.TapRootAddr); !valid {
+		// TODO log
+		return errors.New("taproot address is not formatted properly")
+	}
+
+	return nil
 }
 
 func (w *Wallet) Save() error {
