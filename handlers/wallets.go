@@ -115,6 +115,7 @@ func GetWalletByID(c echo.Context) error {
 	wallet.Inscriptions = inscriptions
 
 	// Get all wallet utxos
+	// TODO: check blockinfo API response for pagination
 	var makerPaymentAddr string
 	if wallet.Type == "unisat" {
 		makerPaymentAddr = wallet.TapRootAddr
