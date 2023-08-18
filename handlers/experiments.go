@@ -6,6 +6,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"ntc-services/models"
+	"ntc-services/services"
+
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/psbt"
@@ -16,9 +20,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/tnakagawa/goref/bech32m"
 	"math"
-	"net/http"
-	"ntc-services/models"
-	"ntc-services/services"
 )
 
 /*

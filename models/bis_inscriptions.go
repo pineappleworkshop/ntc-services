@@ -24,6 +24,24 @@ type BisInscription struct {
 	OwnerWalletAddr         string      `json:"owner_wallet_addr"`
 	Satpoint                string      `json:"satpoint"`
 	Slug                    interface{} `json:"slug"`
+	Wallet                  string      `json:"wallet"`
+	MediaLength             int64       `json:"media_length"`
+	GenesisTimestamp        int64       `json:"genesis_ts"`
+	GenesisFee              int64       `json:"genesis_fee"`
+	OutputValue             int64       `json:"output_value"`
+	LastSalePrice           int64       `json:"last_sale_price"`
+	CollectionSlug          interface{} `json:"collection_slug"`
+	CollectionFloorPrice    int64       `json:"collection_floor_price"`
+	MinPrice                int64       `json:"min_price"`
+	OrdswapPrice            int64       `json:"ordswap_price"`
+	MagicedenPrice          int64       `json:"magiceden_price"`
+	OrdinalsWalletPrice     int64       `json:"ordinalswallet_price"`
+	GammaioPrice            int64       `json:"gammaio_price"`
+	NostrPrice              int64       `json:"nostr_price"`
+	OdynalsPrice            int64       `json:"odynals_price"`
+	UnisatPrice             int64       `json:"unisat_price"`
+	OrdinalsMarketPrice     int64       `json:"ordinalsmarket_price"`
+	OkxPrice                int64       `json:"okx_price"`
 }
 
 //type BISWalletIx struct {
