@@ -1,7 +1,11 @@
 package services
 
 import (
+	"bytes"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
+	"github.com/btcsuite/btcd/btcutil/psbt"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"ntc-services/models"
@@ -15,7 +19,9 @@ var makerWallet = &models.Wallet{
 	ID:                 primitive.NewObjectID(),
 	Type:               "unisat",
 	TapRootAddr:        "bc1p0t40pgryukh88rhwx4ffzt28cjmhxnpm56s3382vyy22zek5wpmq8rps2l",
+	TapRootPublicKey:   "0223dfdbe72c5ee9e687946e9c17f68589d90552e37a6435da7c05c2f1fba21f15",
 	SegwitAddr:         "",
+	SegwitPublicKey:    "",
 	CreatedAt:          now,
 	UpdatedAt:          &now,
 	LastConnectedAt:    &now,
@@ -102,7 +108,9 @@ var takerWallet = &models.Wallet{
 	ID:                 primitive.NewObjectID(),
 	Type:               "unisat",
 	TapRootAddr:        "bc1pxy8gsmgu5zzv0ytj7ae4pgnqkcdwaqas7xmc4szcg70zqwsj4rxss2tvhu",
+	TapRootPublicKey:   "0368eb27111199624e2d4f31c4e43e6a3c58954c3aa39e295fb3a3c63a79f8bba4",
 	SegwitAddr:         "",
+	SegwitPublicKey:    "",
 	CreatedAt:          now,
 	UpdatedAt:          &now,
 	LastConnectedAt:    &now,
@@ -123,7 +131,6 @@ var takerUTXOsAll = []*models.UTXO{
 }
 
 var takerInscriptions = []*models.Inscription{}
-
 var takerInscriptionsAll = []*models.Inscription{}
 
 var taker = &models.Side{
@@ -212,18 +219,6 @@ func TestPBST(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Len(t, p.Outputs, 6)
 
-	fmt.Println("==================Inputs")
-	for i, out := range p.Inputs {
-		fmt.Printf("Index: %v - Input%+v \n", i, out)
-	}
-	fmt.Println("=========================")
-
-	fmt.Println("==================Outputs")
-	for i, out := range p.Outputs {
-		fmt.Printf("Index: %v - Output%+v \n", i, out)
-	}
-	fmt.Println("=========================")
-
 	// TODO: add assertions
 
 	pCreate := NewPBST(trade, makerUTXOsAll, takerUTXOsAll, makerInscriptionsAll, takerInscriptionsAll)
@@ -240,4 +235,23 @@ func TestPBST(t *testing.T) {
 	assert.NotNil(t, req)
 	assert.Equal(t, req.Inputs, pCreate.Inputs)
 	assert.Equal(t, req.Outputs, pCreate.Outputs)
+
+	reqJSON, err := json.MarshalIndent(req, "", "  ")
+	assert.Nil(t, err)
+	fmt.Println("|||||||||||||||||||||||")
+	fmt.Printf("%+v \n", string(reqJSON))
+	fmt.Println("|||||||||||||||||||||||")
+
+	psbt64 := "cHNidP8BAP1xAQIAAAAD1h6O8tcLsvSwl/9j1gNO9BL4bwSoZAzeuo+3989SW/wBAAAAAP////8eZEMZKp34wEg8riLiaQUF0ddwgl/tufyPKq0sQn23nwAAAAAA/////xqP5ViiYtdS8FIY0m8dPW/6++eYF5ehg0H0GKReXRs4AAAAAAD/////BiICAAAAAAAAIlEgMQ6IbRyghMeRcvdzUKJgthrug7Dxt4rAWEeeIDoSqM3wSQIAAAAAACJRIHrq8KBk5a5zju41UpEtR8S3c0w7pqEYnUwhFKFm1HB2UMMAAAAAAAAXqRRyZcKuwUEneeTVFf+rBvMwO+cO74eAlpgAAAAAACJRIHrq8KBk5a5zju41UpEtR8S3c0w7pqEYnUwhFKFm1HB2sGkwAQAAAAAiUSAxDohtHKCEx5Fy93NQomC2Gu6DsPG3isBYR54gOhKozVDDAAAAAAAAF6kUcmXCrsFBJ3nk1RX/qwbzMDvnDu+HAAAAAAABASsiAgAAAAAAACJRIHrq8KBk5a5zju41UpEtR8S3c0w7pqEYnUwhFKFm1HB2AQMEgwAAAAEXICPf2+csXunmh5RunBf2hYnZBVLjemQ12nwFwvH7oh8VAAEBK0ANAwAAAAAAIlEgeurwoGTlrnOO7jVSkS1HxLdzTDumoRidTCEUoWbUcHYBAwSDAAAAARcgI9/b5yxe6eaHlG6cF/aFidkFUuN6ZDXafAXC8fuiHxUAAQErgMPJAQAAAAAiUSB66vCgZOWuc47uNVKRLUfEt3NMO6ahGJ1MIRShZtRwdgEDBIMAAAABFyAj39vnLF7p5oeUbpwX9oWJ2QVS43pkNdp8BcLx+6IfFQAAAAAAAAA="
+	decoded, err := base64.StdEncoding.DecodeString(psbt64)
+	//if err != nil {
+	//	return nil, err
+	//}
+	reader := bytes.NewReader(decoded)
+	pack, err := psbt.NewFromRawBytes(reader, false)
+	//if err != nil {
+	//	return nil, err
+	//}
+	fee, _ := calculateMinerFeeForPSBT(pack.UnsignedTx, 12)
+	fmt.Println(fee)
 }

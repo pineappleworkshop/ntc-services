@@ -1,7 +1,10 @@
 package services
 
 import (
+	"encoding/hex"
 	"errors"
+	"fmt"
+	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/wire"
 	"math"
 	"ntc-services/models"
@@ -25,6 +28,7 @@ type PSBT struct {
 	MakerChange           int64
 	TakerChange           int64
 	PlatformFee           int64
+	NetworkFee            int64
 	Inputs                map[int]*Input
 	Outputs               map[int]*Output
 }
@@ -35,20 +39,20 @@ type PSBTReqBody struct {
 }
 
 type Input struct {
-	SenderAddr      string `json:"sender_addr"`
-	SenderPublicKey string `json:"sender_public_key"`
-	Type            string `json:"type"`
-	TxID            string `json:"tx_id"`
-	Index           int64  `json:"index"`
-	WitnessUTXO     struct {
+	Addr        string `json:"addr"`
+	PublicKey   string `json:"public_key"`
+	Type        string `json:"type"`
+	TxID        string `json:"tx_id"`
+	Index       int64  `json:"index"`
+	WitnessUTXO struct {
 		Script string `json:"script"`
 		Amount int64  `json:"amount"`
 	} `json:"witness_utxo"`
 }
 
 type Output struct {
-	RecipientAddr string `json:"recipient_addr"`
-	Value         int64  `json:"value"`
+	Addr  string `json:"addr"`
+	Value int64  `json:"value"`
 }
 
 func NewPBST(
@@ -330,9 +334,13 @@ func (p *PSBT) createInscriptionInputs() error {
 	for i, utxo := range p.MakerInscriptionUTXOs {
 		// Create input
 		input := new(Input)
-		input.SenderAddr = p.Trade.Maker.Wallet.TapRootAddr
-		input.SenderPublicKey = p.Trade.Maker.Wallet.TapRootPublicKey
-		input.Type = "taproot" // TODO: detect from wallet type
+		input.Addr = p.Trade.Maker.Wallet.TapRootAddr
+		if p.Trade.Taker.Wallet.Type == "unisat" {
+			input.PublicKey = p.Trade.Maker.Wallet.TapRootPublicKey[2:]
+		} else { // xverse or hiro
+			input.PublicKey = p.Trade.Maker.Wallet.TapRootPublicKey
+		}
+		input.Type = "taproot"
 		input.TxID = utxo.TxHash
 		input.Index = utxo.TxOutputN
 		input.WitnessUTXO.Amount = utxo.Value
@@ -347,9 +355,13 @@ func (p *PSBT) createInscriptionInputs() error {
 	for i, utxo := range p.TakerInscriptionUTXOs {
 		// Create input
 		input := new(Input)
-		input.SenderAddr = p.Trade.Taker.Wallet.TapRootAddr
-		input.SenderPublicKey = p.Trade.Taker.Wallet.TapRootPublicKey
-		input.Type = "taproot" // TODO: detect from wallet type
+		input.Addr = p.Trade.Taker.Wallet.TapRootAddr
+		if p.Trade.Taker.Wallet.Type == "unisat" {
+			input.PublicKey = p.Trade.Maker.Wallet.TapRootPublicKey[2:]
+		} else { // xverse or hiro
+			input.PublicKey = p.Trade.Maker.Wallet.TapRootPublicKey
+		}
+		input.Type = "taproot"
 		input.TxID = utxo.TxHash
 		input.Index = utxo.TxOutputN
 		input.WitnessUTXO.Amount = utxo.Value
@@ -373,7 +385,7 @@ func (p *PSBT) createInscriptionOutputs() error {
 	for i, utxo := range p.MakerInscriptionUTXOs {
 		// Create output
 		output := new(Output)
-		output.RecipientAddr = p.Trade.Taker.Wallet.TapRootAddr
+		output.Addr = p.Trade.Taker.Wallet.TapRootAddr
 		output.Value = utxo.Value
 
 		// append to outputs
@@ -385,7 +397,7 @@ func (p *PSBT) createInscriptionOutputs() error {
 	for i, utxo := range p.TakerInscriptionUTXOs {
 		// Create output
 		output := new(Output)
-		output.RecipientAddr = p.Trade.Maker.Wallet.TapRootAddr
+		output.Addr = p.Trade.Maker.Wallet.TapRootAddr
 		output.Value = utxo.Value
 
 		// append to outputs
@@ -414,13 +426,13 @@ func (p *PSBT) createPaymentInputs() error {
 		// Create input
 		input := new(Input)
 		if p.Trade.Maker.Wallet.Type == "unisat" {
-			input.SenderAddr = p.Trade.Maker.Wallet.TapRootAddr
-			input.SenderPublicKey = p.Trade.Maker.Wallet.TapRootPublicKey
-			input.Type = "taproot" // TODO: detect from wallet type
+			input.Addr = p.Trade.Maker.Wallet.TapRootAddr
+			input.PublicKey = p.Trade.Taker.Wallet.TapRootPublicKey[2:]
+			input.Type = "p2tr"
 		} else if p.Trade.Maker.Wallet.Type == "xverse" || p.Trade.Maker.Wallet.Type == "hiro" {
-			input.SenderAddr = p.Trade.Maker.Wallet.TapRootAddr
-			input.SenderPublicKey = p.Trade.Maker.Wallet.TapRootPublicKey
-			input.Type = "segwit"
+			input.Addr = p.Trade.Maker.Wallet.TapRootAddr
+			input.PublicKey = p.Trade.Maker.Wallet.TapRootPublicKey
+			input.Type = "p2sh"
 		} else {
 			// TODO: all logging
 			return errors.New("Invalid maker wallet type")
@@ -440,13 +452,13 @@ func (p *PSBT) createPaymentInputs() error {
 		// Create input
 		input := new(Input)
 		if p.Trade.Taker.Wallet.Type == "unisat" {
-			input.SenderAddr = p.Trade.Taker.Wallet.TapRootAddr
-			input.SenderPublicKey = p.Trade.Taker.Wallet.TapRootPublicKey
-			input.Type = "taproot" // TODO: detect from wallet type
+			input.Addr = p.Trade.Taker.Wallet.TapRootAddr
+			input.PublicKey = p.Trade.Taker.Wallet.TapRootPublicKey[2:]
+			input.Type = "p2tr"
 		} else if p.Trade.Taker.Wallet.Type == "xverse" || p.Trade.Taker.Wallet.Type == "hiro" {
-			input.SenderAddr = p.Trade.Taker.Wallet.TapRootAddr
-			input.SenderPublicKey = p.Trade.Taker.Wallet.TapRootPublicKey
-			input.Type = "segwit"
+			input.Addr = p.Trade.Taker.Wallet.TapRootAddr
+			input.PublicKey = p.Trade.Taker.Wallet.TapRootPublicKey
+			input.Type = "p2sh"
 		} else {
 			// TODO: all logging
 			return errors.New("Invalid taker wallet type")
@@ -471,12 +483,12 @@ func (p *PSBT) createPaymentInputs() error {
 func (p *PSBT) createPaymentsOutputs() error {
 	// MAKER: Create the payments outputs
 	// Create output for payment from maker to taker
-	if p.Trade.Maker.BTC > 546 {
+	if p.Trade.Maker.BTC >= 546 {
 		makerPaymentOutput := new(Output)
 		if p.Trade.Taker.Wallet.Type == "unisat" {
-			makerPaymentOutput.RecipientAddr = p.Trade.Taker.Wallet.TapRootAddr
+			makerPaymentOutput.Addr = p.Trade.Taker.Wallet.TapRootAddr
 		} else if p.Trade.Taker.Wallet.Type == "xverse" || p.Trade.Taker.Wallet.Type == "hiro" {
-			makerPaymentOutput.RecipientAddr = p.Trade.Taker.Wallet.SegwitAddr
+			makerPaymentOutput.Addr = p.Trade.Taker.Wallet.SegwitAddr
 		} else {
 			// TODO: all logging
 			return errors.New("Invalid taker wallet type")
@@ -487,9 +499,9 @@ func (p *PSBT) createPaymentsOutputs() error {
 	// Create output for maker change
 	makerChangeOutput := new(Output)
 	if p.Trade.Maker.Wallet.Type == "unisat" {
-		makerChangeOutput.RecipientAddr = p.Trade.Maker.Wallet.TapRootAddr
+		makerChangeOutput.Addr = p.Trade.Maker.Wallet.TapRootAddr
 	} else if p.Trade.Taker.Wallet.Type == "xverse" || p.Trade.Taker.Wallet.Type == "hiro" {
-		makerChangeOutput.RecipientAddr = p.Trade.Maker.Wallet.SegwitAddr
+		makerChangeOutput.Addr = p.Trade.Maker.Wallet.SegwitAddr
 	} else {
 		// TODO: all logging
 		return errors.New("Invalid maker wallet type")
@@ -498,18 +510,18 @@ func (p *PSBT) createPaymentsOutputs() error {
 	p.Outputs[len(p.Outputs)] = makerChangeOutput
 	// Create output for maker platform fee
 	makerPlatformFeeOutput := new(Output)
-	makerPlatformFeeOutput.RecipientAddr = "3C7trrWesxpM5aHPTCPMeeBG418C5LvXbc"
+	makerPlatformFeeOutput.Addr = "3C7trrWesxpM5aHPTCPMeeBG418C5LvXbc"
 	makerPlatformFeeOutput.Value = p.PlatformFee / 2
 	p.Outputs[len(p.Outputs)] = makerPlatformFeeOutput
 
 	// TAKER: Create the payments outputs
 	// Create output for payment from taker to maker
-	if p.Trade.Taker.BTC > 546 {
+	if p.Trade.Taker.BTC >= 546 {
 		takerPaymentOutput := new(Output)
 		if p.Trade.Maker.Wallet.Type == "unisat" {
-			takerPaymentOutput.RecipientAddr = p.Trade.Maker.Wallet.TapRootAddr
+			takerPaymentOutput.Addr = p.Trade.Maker.Wallet.TapRootAddr
 		} else if p.Trade.Taker.Wallet.Type == "xverse" || p.Trade.Taker.Wallet.Type == "hiro" {
-			takerPaymentOutput.RecipientAddr = p.Trade.Maker.Wallet.SegwitAddr
+			takerPaymentOutput.Addr = p.Trade.Maker.Wallet.SegwitAddr
 		} else {
 			// TODO: all logging
 			return errors.New("Invalid taker wallet type")
@@ -520,9 +532,9 @@ func (p *PSBT) createPaymentsOutputs() error {
 	// Create output for taker change
 	takerChangeOutput := new(Output)
 	if p.Trade.Taker.Wallet.Type == "unisat" {
-		takerChangeOutput.RecipientAddr = p.Trade.Taker.Wallet.TapRootAddr
+		takerChangeOutput.Addr = p.Trade.Taker.Wallet.TapRootAddr
 	} else if p.Trade.Taker.Wallet.Type == "xverse" || p.Trade.Taker.Wallet.Type == "hiro" {
-		takerChangeOutput.RecipientAddr = p.Trade.Taker.Wallet.SegwitAddr
+		takerChangeOutput.Addr = p.Trade.Taker.Wallet.SegwitAddr
 	} else {
 		// TODO: all logging
 		return errors.New("Invalid maker wallet type")
@@ -531,11 +543,20 @@ func (p *PSBT) createPaymentsOutputs() error {
 	p.Outputs[len(p.Outputs)] = takerChangeOutput
 	// Create output for maker platform fee
 	takerPlatformFeeOutput := new(Output)
-	takerPlatformFeeOutput.RecipientAddr = "3C7trrWesxpM5aHPTCPMeeBG418C5LvXbc"
+	takerPlatformFeeOutput.Addr = "3C7trrWesxpM5aHPTCPMeeBG418C5LvXbc"
 	takerPlatformFeeOutput.Value = p.PlatformFee / 2
 	p.Outputs[len(p.Outputs)] = takerPlatformFeeOutput
 
 	return nil
+}
+
+func (p *PSBT) generatePSBT() {
+
+	// TODO: send raw Tx to get preliminary PSBT service
+	// TODO: measure gas and adjust the maker/taker change outputs
+	// TODO: send finalized Tx to PSBT service
+	// TODO: store all data accordingly
+
 }
 
 // isValidTxID checks if the given txID adheres to the expected format of a Bitcoin transaction ID.
@@ -556,3 +577,58 @@ func calculateMinerFeeForPSBT(tx *wire.MsgTx, feeRatePerVByte float64) (int64, e
 
 	return int64(minerFee) + 50, nil
 }
+
+func extractTaprootPublicKeyHex(pkScript []byte) (string, error) {
+	// Check that the script is the correct length for P2TR (1-byte version + 1-byte length + 32-byte key)
+	if len(pkScript) != 34 {
+		return "", fmt.Errorf("invalid pkScript length for P2TR")
+	}
+
+	// Check that the version byte is 0x51 (indicating P2TR)
+	if pkScript[0] != 0x51 {
+		return "", fmt.Errorf("invalid version byte for P2TR")
+	}
+
+	// Check that the length byte is 0x20 (indicating 32 bytes)
+	if pkScript[1] != 0x20 {
+		return "", fmt.Errorf("invalid length byte for P2TR public key")
+	}
+
+	// Convert the 32-byte taproot public key to hexadecimal format
+	pubKeyHex := hex.EncodeToString(pkScript[2:])
+	return pubKeyHex, nil
+}
+
+func extractTaprootInternalPublicKeyFromAddress(addr string) (string, error) {
+	// TODO: check address first to see if taproot, beginning starts with `bc1p`
+	decodedAddress, err := btcutil.DecodeAddress(addr, nil)
+	if err != nil {
+		return "", err
+	}
+	if wa, ok := decodedAddress.(*btcutil.AddressTaproot); ok {
+		encodedKeyHex := hex.EncodeToString(wa.WitnessProgram())
+
+		return encodedKeyHex, nil
+	}
+
+	return "", errors.New("address is not a taproot")
+}
+
+func detectAddrType(addr string) (string, error) {
+	if strings.HasPrefix(addr, "3") {
+		return "p2sh", nil
+	}
+	if strings.HasPrefix(addr, "bc1p") {
+		return "p2tr", nil
+	}
+
+	return "", errors.New("address not supported")
+}
+
+//b9907521ddb85e0e6a37622b7c685efbdc8ae53a334928adbd12cf204ad4e717
+//02818b7ff740a40f311d002123087053d5d9e0e1546674aedb10e15a5b57fd3985
+//0223dfdbe72c5ee9e687946e9c17f68589d90552e37a6435da7c05c2f1fba21f15
+
+//0223dfdbe72c5ee9e687946e9c17f68589d90552e37a6435da7c05c2f1fba21f15 unisat pk
+//412a65ed2a0d2d5237f0a7ab338d0cc3b737daea28436138a68a40ab7f7ad4a7 xverse ordinal pk
+//02015e26bf3ff8e7a470ec07b719a7414b6e6f8a67ef97302e28fd524b2d9b7ec2 xverse payment pk
