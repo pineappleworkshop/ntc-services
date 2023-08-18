@@ -51,20 +51,20 @@ func (w *Wallet) Validate(c echo.Context) error {
 			c.Logger().Error(err)
 			return err
 		}
+		if valid := validateBTCAddress(w.SegwitAddr); !valid {
+			err := errors.New("seqwit address is not formatted properly")
+			c.Logger().Error(err)
+			return err
+		}
 	}
+
 	if w.TapRootAddr == "" || w.TapRootPublicKey == "" {
 		err := errors.New("wallet taproot address & taproot public key cannot be blank")
 		c.Logger().Error(err)
 		return err
 	}
-
-	if valid := validateBTCAddress(w.SegwitAddr); !valid {
-		err := errors.New("seqwit address is not formatted properly")
-		c.Logger().Error(err)
-		return err
-	}
 	if valid := validateBTCAddress(w.TapRootAddr); !valid {
-		err := errors.New("seqwit address is not formatted properly")
+		err := errors.New("taproot address is not formatted properly")
 		c.Logger().Error(err)
 		return err
 	}

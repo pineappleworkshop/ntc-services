@@ -33,6 +33,7 @@ func NewOffer(tradeID primitive.ObjectID) *Offer {
 	return &Offer{
 		ID:        primitive.NewObjectID(),
 		TradeID:   tradeID,
+		Status:    "OPEN",
 		CreatedAt: time.Now().Unix(),
 	}
 }
@@ -67,7 +68,6 @@ func GetOffersByTradeID(c echo.Context) ([]*Offer, error) {
 		return nil, err
 	}
 	filter := bson.M{"trade_id": idHex}
-
 	collection := stores.DB.Mongo.Client.Database(stores.DB_NAME).Collection(stores.DB_COLLECTION_OFFERS)
 
 	cursor, err := collection.Find(context.TODO(), filter)

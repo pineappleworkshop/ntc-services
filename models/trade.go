@@ -35,6 +35,7 @@ type Trade struct {
 	Maker           *Side               `json:"maker" bson:"-"`
 	TakerID         *primitive.ObjectID `json:"taker_id" bson:"taker_id"`
 	Taker           *Side               `json:"taker" bson:"-"`
+	Offers          []*Offer            `json:"offers" bson:"-"`
 	PSBT            *string             `json:"psbt" bson:"psbt"`
 	FeeRate         int32               `json:"fee_rate" bson:"fee_rate"`
 	PlatformFee     *int64              `json:"platform_fee" bson:"platform_fee"`
@@ -46,11 +47,9 @@ type Trade struct {
 }
 
 func NewTradeReqBody() *TradeReqBody {
-
 	return &TradeReqBody{}
 }
 func NewTradeMakerReqBody() *TradeMakerReqBody {
-
 	return &TradeMakerReqBody{}
 }
 
@@ -172,6 +171,24 @@ func GetTradeByID(c echo.Context, idStr string) (*Trade, error) {
 		}
 		trade.Taker = taker
 	}
+
+	// TODO: revisit
+	offers, err := GetOffersByTradeID(c)
+	if err != nil {
+		if err.Error() != stores.MONGO_ERR_NOT_FOUND {
+			c.Logger().Error(err)
+			return nil, err
+		}
+	}
+	for _, offer := range offers {
+		offerMaker, err := GetSideByID(offer.MakerID.Hex())
+		if err != nil {
+			c.Logger().Error(err)
+			return nil, err
+		}
+		offer.Maker = offerMaker
+	}
+	trade.Offers = offers
 
 	return trade, nil
 }

@@ -131,133 +131,10 @@ func PostMakerByTradeID(c echo.Context) error {
 	//}
 
 	// Get maker inscriptions for trade, ensure maker owns those inscriptions, & append to maker side
-	// TODO: cover wallets that have inscriptions greater then 100 (pagination)
-	makerInscriptions, err := services.BESTINSLOT.GetInscriptionsByWalletAddr(
-		c,
-		maker.Wallet.TapRootAddr,
-		100,
-		1,
-	)
-	if err != nil {
+	if err := parseMakerAssets(c, trade, maker, tradeMakerReqBody); err != nil {
 		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, err.Error())
+		return err
 	}
-	found := map[int64]bool{}
-	for _, inscriptionNum := range tradeMakerReqBody.InscriptionNumbers {
-		found[inscriptionNum] = false
-		for _, makerInscription := range makerInscriptions.Data {
-			if makerInscription.InscriptionNumber == inscriptionNum {
-				found[inscriptionNum] = true
-			}
-		}
-	}
-	for k, v := range found {
-		if v == false {
-			err := errors.New(
-				fmt.Sprintf("Inscription Number: %v not owned by Wallet: %v", k, trade.MakerID.Hex()),
-			)
-			c.Logger().Error(err)
-			return c.JSON(http.StatusBadRequest, err.Error())
-		}
-	}
-	inscriptions := []*models.Inscription{}
-	for _, makerInscription := range makerInscriptions.Data {
-		inscription := models.ParseBISInscription(makerInscription)
-		inscriptions = append(inscriptions, inscription)
-	}
-	maker.Inscriptions = inscriptions
-	maker.InscriptionNumbers = tradeMakerReqBody.InscriptionNumbers
-
-	// Ensure maker has enough BTC for trade
-	// TODO: revisit to harden logic everywhere
-	var makerPaymentAddr string
-	if trade.Maker.Wallet.Type == "unisat" {
-		makerPaymentAddr = trade.Maker.Wallet.TapRootAddr
-	} else { // TODO: harden
-		makerPaymentAddr = trade.Maker.Wallet.SegwitAddr
-	}
-	makerUTXOs, err := services.BLOCKCHAININFO.GetUTXOsForAddr(makerPaymentAddr)
-	if err != nil {
-		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, err.Error())
-	}
-	var makerPaymentUTXOs []*models.UTXO
-	for _, inscription := range maker.Inscriptions {
-		inscriptionIDS := strings.Split(inscription.Satpoint, ":")
-		if len(inscriptionIDS) != 3 {
-			err := errors.New(
-				fmt.Sprintf("error parsing paymentUTXOs for maker"),
-			)
-			c.Logger().Error(err)
-			return c.JSON(http.StatusBadRequest, err.Error())
-		}
-		for _, utxoI := range makerUTXOs["unspent_outputs"].([]interface{}) {
-			utxo := new(models.UTXO)
-			if err := utxo.Parse(utxoI.(map[string]interface{})); err != nil {
-				err := errors.New(
-					fmt.Sprintf("could not parse utxo from blockchain info in data schema"),
-				)
-				c.Logger().Error(err)
-				return c.JSON(http.StatusBadRequest, err.Error())
-			}
-
-			found := false
-			if utxo.TxHashBigEndian == inscriptionIDS[0] {
-				inscriptionIndex, err := strconv.Atoi(inscriptionIDS[1])
-				if err != nil {
-					err := errors.New(
-						fmt.Sprintf("could not parse inscription index for maker"),
-					)
-					c.Logger().Error(err)
-					return c.JSON(http.StatusBadRequest, err.Error())
-				}
-				if utxo.TxOutputN == int64(inscriptionIndex) {
-					found = true
-				}
-			}
-			if !found {
-				makerPaymentUTXOs = append(makerPaymentUTXOs, utxo)
-			}
-		}
-	}
-	makerAvailableBTC := int64(0)
-	for _, utxo := range makerPaymentUTXOs {
-		makerAvailableBTC = makerAvailableBTC + utxo.Value
-	}
-	if makerAvailableBTC < tradeMakerReqBody.BTC {
-		err := errors.New(fmt.Sprintf("maker does not have enough available BTC for trade"))
-		c.Logger().Error(err)
-		return c.JSON(http.StatusBadRequest, err.Error())
-	}
-	maker.BTC = tradeMakerReqBody.BTC
-	//maker.PaymentUTXOs = append(maker.PaymentUTXOs, makerPaymentUTXOs...)
-
-	//// TODO: query ordex for extra inscription information (floor price, previous tx, more...)
-	//// look for another endpoint called get inscriptions by id (multiple same time)
-	//response, err := services.ORDEX.GetInscriptionsByIds(tradeMakerReqBody.InscriptionNumbers)
-	//if err != nil {
-	//	c.Logger().Error(err)
-	//	return c.JSON(http.StatusInternalServerError, err)
-	//}
-	//// fmt.Printf("inscriptions: %+v\n", inscriptions)
-	//// Format response as readable JSON
-	//formattedJSON, err := formatJSON(response)
-	//if err != nil {
-	//	fmt.Println("Error formatting JSON:", err)
-	//	return c.JSON(http.StatusInternalServerError, err)
-	//}
-	//
-	//fmt.Println("Formatted JSON:")
-	//fmt.Println(formattedJSON)
-
-	// for _, value := range tradeMakerReqBody.InscriptionNumbers {
-	// 	inscription, err := services.BESTINSLOT.GetInscriptionById(c, value)
-	// 	if err != nil {
-	// 		c.Logger().Error(err)
-	// 		return c.JSON(http.StatusInternalServerError, err)
-	// 	}
-	// 	fmt.Printf("inscription: %+v\n", inscription)
-	// }
 
 	// update side
 	if err := maker.Update(c); err != nil {
@@ -320,133 +197,12 @@ func PostOfferByTradeID(c echo.Context) error {
 	}
 
 	// Create side & get maker inscriptions for offer, ensure maker owns those inscriptions, & append to maker side
-	// TODO: cover wallets that have inscriptions greater then 100 (pagination)
 	maker := models.NewSide(wallet.ID)
-	makerInscriptions, err := services.BESTINSLOT.GetInscriptionsByWalletAddr(
-		c,
-		maker.Wallet.TapRootAddr,
-		100,
-		1,
-	)
-	if err != nil {
+	maker.Wallet = wallet
+	if err := parseMakerAssets(c, trade, maker, tradeMakerReqBody); err != nil {
 		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, err.Error())
+		return err
 	}
-	found := map[int64]bool{}
-	for _, inscriptionNum := range tradeMakerReqBody.InscriptionNumbers {
-		found[inscriptionNum] = false
-		for _, makerInscription := range makerInscriptions.Data {
-			if makerInscription.InscriptionNumber == inscriptionNum {
-				found[inscriptionNum] = true
-			}
-		}
-	}
-	for k, v := range found {
-		if v == false {
-			err := errors.New(
-				fmt.Sprintf("Inscription Number: %v not owned by Wallet: %v", k, trade.MakerID.Hex()),
-			)
-			c.Logger().Error(err)
-			return c.JSON(http.StatusBadRequest, err.Error())
-		}
-	}
-	inscriptions := []*models.Inscription{}
-	for _, makerInscription := range makerInscriptions.Data {
-		inscription := models.ParseBISInscription(makerInscription)
-		inscriptions = append(inscriptions, inscription)
-	}
-	maker.Inscriptions = inscriptions
-	maker.InscriptionNumbers = tradeMakerReqBody.InscriptionNumbers
-
-	// Ensure maker has enough BTC for the offer
-	// TODO: revisit to harden logic everywhere
-	var makerPaymentAddr string
-	if trade.Maker.Wallet.Type == "unisat" {
-		makerPaymentAddr = trade.Maker.Wallet.TapRootAddr
-	} else { // TODO: harden
-		makerPaymentAddr = trade.Maker.Wallet.SegwitAddr
-	}
-	makerUTXOs, err := services.BLOCKCHAININFO.GetUTXOsForAddr(makerPaymentAddr)
-	if err != nil {
-		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, err.Error())
-	}
-	var makerPaymentUTXOs []*models.UTXO
-	for _, inscription := range maker.Inscriptions {
-		inscriptionIDS := strings.Split(inscription.Satpoint, ":")
-		if len(inscriptionIDS) != 3 {
-			err := errors.New(
-				fmt.Sprintf("error parsing paymentUTXOs for maker"),
-			)
-			c.Logger().Error(err)
-			return c.JSON(http.StatusBadRequest, err.Error())
-		}
-		for _, utxoI := range makerUTXOs["unspent_outputs"].([]interface{}) {
-			utxo := new(models.UTXO)
-			if err := utxo.Parse(utxoI.(map[string]interface{})); err != nil {
-				err := errors.New(
-					fmt.Sprintf("could not parse utxo from blockchain info in data schema"),
-				)
-				c.Logger().Error(err)
-				return c.JSON(http.StatusBadRequest, err.Error())
-			}
-
-			found := false
-			if utxo.TxHashBigEndian == inscriptionIDS[0] {
-				inscriptionIndex, err := strconv.Atoi(inscriptionIDS[1])
-				if err != nil {
-					err := errors.New(
-						fmt.Sprintf("could not parse inscription index for maker"),
-					)
-					c.Logger().Error(err)
-					return c.JSON(http.StatusBadRequest, err.Error())
-				}
-				if utxo.TxOutputN == int64(inscriptionIndex) {
-					found = true
-				}
-			}
-			if !found {
-				makerPaymentUTXOs = append(makerPaymentUTXOs, utxo)
-			}
-		}
-	}
-	makerAvailableBTC := int64(0)
-	for _, utxo := range makerPaymentUTXOs {
-		makerAvailableBTC = makerAvailableBTC + utxo.Value
-	}
-	if makerAvailableBTC < tradeMakerReqBody.BTC {
-		err := errors.New(fmt.Sprintf("maker does not have enough available BTC for trade"))
-		c.Logger().Error(err)
-		return c.JSON(http.StatusBadRequest, err.Error())
-	}
-	maker.BTC = tradeMakerReqBody.BTC
-
-	//// TODO: query ordex for extra inscription information (floor price, previous tx, more...)
-	//// look for another endpoint called get inscriptions by id (multiple same time)
-	//response, err := services.ORDEX.GetInscriptionsByIds(tradeMakerReqBody.InscriptionNumbers)
-	//if err != nil {
-	//	c.Logger().Error(err)
-	//	return c.JSON(http.StatusInternalServerError, err)
-	//}
-	//// fmt.Printf("inscriptions: %+v\n", inscriptions)
-	//// Format response as readable JSON
-	//formattedJSON, err := formatJSON(response)
-	//if err != nil {
-	//	fmt.Println("Error formatting JSON:", err)
-	//	return c.JSON(http.StatusInternalServerError, err)
-	//}
-	//
-	//fmt.Println("Formatted JSON:")
-	//fmt.Println(formattedJSON)
-
-	// for _, value := range tradeMakerReqBody.InscriptionNumbers {
-	// 	inscription, err := services.BESTINSLOT.GetInscriptionById(c, value)
-	// 	if err != nil {
-	// 		c.Logger().Error(err)
-	// 		return c.JSON(http.StatusInternalServerError, err)
-	// 	}
-	// 	fmt.Printf("inscription: %+v\n", inscription)
-	// }
 
 	// Store offer make as a side
 	if err := maker.Create(c); err != nil {
@@ -461,6 +217,7 @@ func PostOfferByTradeID(c echo.Context) error {
 		c.Logger().Error(err)
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
+	offer.Maker = maker
 
 	return c.JSON(http.StatusOK, offer)
 }
@@ -572,4 +329,144 @@ func PostSubmitTradeByID(c echo.Context) error {
 	// TODO: Sign PBST and send to RPC gateway
 
 	return c.JSON(http.StatusOK, nil)
+}
+
+func parseMakerAssets(
+	c echo.Context,
+	trade *models.Trade,
+	maker *models.Side,
+	tradeMakerReqBody *models.TradeMakerReqBody,
+) error {
+	// TODO: cover wallets that have inscriptions greater then 100 (pagination)
+	makerInscriptions, err := services.BESTINSLOT.GetInscriptionsByWalletAddr(
+		c,
+		maker.Wallet.TapRootAddr,
+		100,
+		1,
+	)
+	if err != nil {
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+	found := map[int64]bool{}
+	for _, inscriptionNum := range tradeMakerReqBody.InscriptionNumbers {
+		found[inscriptionNum] = false
+		for _, makerInscription := range makerInscriptions.Data {
+			if makerInscription.InscriptionNumber == inscriptionNum {
+				found[inscriptionNum] = true
+			}
+		}
+	}
+	for k, v := range found {
+		if v == false {
+			err := errors.New(
+				fmt.Sprintf("Inscription Number: %v not owned by Wallet: %v", k, trade.MakerID.Hex()),
+			)
+			c.Logger().Error(err)
+			return c.JSON(http.StatusBadRequest, err.Error())
+		}
+	}
+	inscriptions := []*models.Inscription{}
+	for _, makerInscription := range makerInscriptions.Data {
+		inscription := models.ParseBISInscription(makerInscription)
+		for _, incriptionNum := range tradeMakerReqBody.InscriptionNumbers {
+			if incriptionNum == inscription.InscriptionNumber {
+				inscriptions = append(inscriptions, inscription)
+			}
+		}
+	}
+	maker.Inscriptions = inscriptions
+	maker.InscriptionNumbers = tradeMakerReqBody.InscriptionNumbers
+
+	// Ensure maker has enough BTC for the offer
+	// TODO: revisit to harden logic everywhere
+	var makerPaymentAddr string
+	if trade.Maker.Wallet.Type == "unisat" {
+		makerPaymentAddr = trade.Maker.Wallet.TapRootAddr
+	} else { // TODO: harden
+		makerPaymentAddr = trade.Maker.Wallet.SegwitAddr
+	}
+	makerUTXOs, err := services.BLOCKCHAININFO.GetUTXOsForAddr(makerPaymentAddr)
+	if err != nil {
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+	var makerPaymentUTXOs []*models.UTXO
+	for _, inscription := range maker.Inscriptions {
+		inscriptionIDS := strings.Split(inscription.Satpoint, ":")
+		if len(inscriptionIDS) != 3 {
+			err := errors.New(
+				fmt.Sprintf("error parsing paymentUTXOs for maker"),
+			)
+			c.Logger().Error(err)
+			return c.JSON(http.StatusBadRequest, err.Error())
+		}
+		for _, utxoI := range makerUTXOs["unspent_outputs"].([]interface{}) {
+			utxo := new(models.UTXO)
+			if err := utxo.Parse(utxoI.(map[string]interface{})); err != nil {
+				err := errors.New(
+					fmt.Sprintf("could not parse utxo from blockchain info in data schema"),
+				)
+				c.Logger().Error(err)
+				return c.JSON(http.StatusBadRequest, err.Error())
+			}
+
+			found := false
+			if utxo.TxHashBigEndian == inscriptionIDS[0] {
+				inscriptionIndex, err := strconv.Atoi(inscriptionIDS[1])
+				if err != nil {
+					err := errors.New(
+						fmt.Sprintf("could not parse inscription index for maker"),
+					)
+					c.Logger().Error(err)
+					return c.JSON(http.StatusBadRequest, err.Error())
+				}
+				if utxo.TxOutputN == int64(inscriptionIndex) {
+					found = true
+				}
+			}
+			if !found {
+				makerPaymentUTXOs = append(makerPaymentUTXOs, utxo)
+			}
+		}
+	}
+	makerAvailableBTC := int64(0)
+	for _, utxo := range makerPaymentUTXOs {
+		makerAvailableBTC = makerAvailableBTC + utxo.Value
+	}
+	if makerAvailableBTC < tradeMakerReqBody.BTC {
+		err := errors.New(fmt.Sprintf("maker does not have enough available BTC for trade"))
+		c.Logger().Error(err)
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+	maker.BTC = tradeMakerReqBody.BTC
+
+	//// TODO: query ordex for extra inscription information (floor price, previous tx, more...)
+	//// look for another endpoint called get inscriptions by id (multiple same time)
+	//response, err := services.ORDEX.GetInscriptionsByIds(tradeMakerReqBody.InscriptionNumbers)
+	//if err != nil {
+	//	c.Logger().Error(err)
+	//	return c.JSON(http.StatusInternalServerError, err)
+	//}
+	//// fmt.Printf("inscriptions: %+v\n", inscriptions)
+	//// Format response as readable JSON
+	//formattedJSON, err := formatJSON(response)
+	//if err != nil {
+	//	fmt.Println("Error formatting JSON:", err)
+	//	return c.JSON(http.StatusInternalServerError, err)
+	//}
+	//
+	//fmt.Println("Formatted JSON:")
+	//fmt.Println(formattedJSON)
+
+	// for _, value := range tradeMakerReqBody.InscriptionNumbers {
+	// 	inscription, err := services.BESTINSLOT.GetInscriptionById(c, value)
+	// 	if err != nil {
+	// 		c.Logger().Error(err)
+	// 		return c.JSON(http.StatusInternalServerError, err)
+	// 	}
+	// 	fmt.Printf("inscription: %+v\n", inscription)
+	// }
+
+	return nil
 }

@@ -44,7 +44,7 @@ func PostWallets(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	// Ensure wallet does not already exist
+	// Ensure wallet does not already exist by taproot
 	walletExistingTapRoot, err := models.GetWalletByAddr(wallet.TapRootAddr, models.ADDRESS_TAPROOT)
 	if err != nil {
 		if err.Error() != stores.MONGO_ERR_NOT_FOUND {
@@ -56,16 +56,20 @@ func PostWallets(c echo.Context) error {
 		c.Logger().Error("Wallet already exists in database")
 		return c.JSON(http.StatusConflict, "Wallet already exists in database")
 	}
-	walletExistingSegwit, err := models.GetWalletByAddr(wallet.SegwitAddr, models.ADDRESS_SEGWIT)
-	if err != nil {
-		if err.Error() != stores.MONGO_ERR_NOT_FOUND {
-			c.Logger().Error(err)
-			return c.JSON(http.StatusInternalServerError, err.Error())
+
+	// If not unisat, ensure wallet does not exist be segwit
+	if wallet.Type != "unisat" {
+		walletExistingSegwit, err := models.GetWalletByAddr(wallet.SegwitAddr, models.ADDRESS_SEGWIT)
+		if err != nil {
+			if err.Error() != stores.MONGO_ERR_NOT_FOUND {
+				c.Logger().Error(err)
+				return c.JSON(http.StatusInternalServerError, err.Error())
+			}
 		}
-	}
-	if walletExistingSegwit != nil {
-		c.Logger().Error("Wallet already exists in database")
-		return c.JSON(http.StatusConflict, "Wallet already exists in database")
+		if walletExistingSegwit != nil {
+			c.Logger().Error("Wallet already exists in database")
+			return c.JSON(http.StatusConflict, "Wallet already exists in database")
+		}
 	}
 
 	// Store wallet
