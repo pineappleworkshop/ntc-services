@@ -29,8 +29,8 @@ type PSBT struct {
 	TakerChange           int64
 	PlatformFee           int64
 	NetworkFee            int64
-	Inputs                map[int]*Input
-	Outputs               map[int]*Output
+	Inputs                map[int]*Input  `json:"inputs"`
+	Outputs               map[int]*Output `json:"outputs"`
 }
 
 type PSBTReqBody struct {

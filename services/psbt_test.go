@@ -152,8 +152,7 @@ var trade = &models.Trade{
 	TakerID:         &taker.ID,
 	Taker:           taker,
 	PSBT:            nil,
-	FeeRate:         nil,
-	MaxFee:          10,
+	FeeRate:         10,
 	PlatformFee:     nil,
 	TxID:            nil,
 	Status:          "OFFER_ACCEPTED", // something else

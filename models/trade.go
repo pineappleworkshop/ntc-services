@@ -16,19 +16,13 @@ type Trade struct {
 	TakerID         *primitive.ObjectID `json:"taker_id" bson:"taker_id"`
 	Taker           *Side               `json:"taker" bson:"take-"`
 	PSBT            *string             `json:"psbt" bson:"psbt"`
-	FeeRate         *FeeRate            `json:"fee_rate" bson:"fee_rate"`
-	MaxFee          int32               `json:"max_fee" bson:"max_fee"`
+	FeeRate         int32               `json:"fee_rate" bson:"fee_rate"`
 	PlatformFee     *int64              `json:"platform_fee" bson:"platform_fee"`
 	TxID            *string             `json:"txId" bson:"txId"`
 	Status          string              `json:"status" bson:"status"`
 	StatusChangedAt *int64              `json:"status_changed_at" bson:"status_changed_at"`
 	CreatedAt       int64               `json:"created_at" bson:"created_at"`
 	UpdatedAt       *int64              `json:"updated_at" bson:"updated_at"`
-}
-
-type FeeRate struct {
-	Label string `json:"label" bson:"label"`
-	Value int32  `json:"value" bson:"value"`
 }
 
 func NewTrade(makerID primitive.ObjectID) *Trade {
