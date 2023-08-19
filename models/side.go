@@ -10,6 +10,12 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+type SideReqBody struct {
+	WalletID           string  `json:"wallet_id" bson:"wallet_id"`
+	BTC                int64   `json:"btc" bson:"btc"`
+	InscriptionNumbers []int64 `json:"inscription_numbers" bson:"inscription_numbers"`
+}
+
 type Side struct {
 	ID                 primitive.ObjectID `json:"id" bson:"_id"`
 	WalletID           primitive.ObjectID `json:"wallet_id" bson:"wallet_id"`

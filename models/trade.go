@@ -2,25 +2,18 @@ package models
 
 import (
 	"context"
-	"ntc-services/stores"
-	"time"
-
 	"github.com/labstack/echo/v4"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"ntc-services/stores"
+	"time"
 )
 
 type TradeReqBody struct {
 	WalletType  string `json:"wallet_type" bson:"wallet_type"`
 	TapRootAddr string `json:"tap_root_addr" bson:"tap_root_addr"`
 	SegwitAddr  string `json:"segwit_addr" bson:"segwit_addr"`
-}
-
-type TradeMakerReqBody struct {
-	WalletID           string  `json:"wallet_id" bson:"wallet_id"`
-	BTC                int64   `json:"btc" bson:"btc"`
-	InscriptionNumbers []int64 `json:"inscription_numbers" bson:"inscription_numbers"`
 }
 
 type Trades struct {
@@ -39,18 +32,11 @@ type Trade struct {
 	PSBT            *string             `json:"psbt" bson:"psbt"`
 	FeeRate         int32               `json:"fee_rate" bson:"fee_rate"`
 	PlatformFee     *int64              `json:"platform_fee" bson:"platform_fee"`
-	TxID            *string             `json:"txId" bson:"txId"`
+	TxID            *string             `json:"tx_id" bson:"tx_id"`
 	Status          string              `json:"status" bson:"status"`
 	StatusChangedAt *int64              `json:"status_changed_at" bson:"status_changed_at"`
 	CreatedAt       int64               `json:"created_at" bson:"created_at"`
 	UpdatedAt       *int64              `json:"updated_at" bson:"updated_at"`
-}
-
-func NewTradeReqBody() *TradeReqBody {
-	return &TradeReqBody{}
-}
-func NewTradeMakerReqBody() *TradeMakerReqBody {
-	return &TradeMakerReqBody{}
 }
 
 func NewTrade(makerID primitive.ObjectID) *Trade {

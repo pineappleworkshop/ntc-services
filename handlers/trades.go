@@ -22,7 +22,7 @@ import (
 
 func PostTrades(c echo.Context) error {
 	// Parse json body
-	tradeReqBody := models.NewTradeReqBody()
+	tradeReqBody := new(models.TradeReqBody)
 	if err := c.Bind(tradeReqBody); err != nil {
 		c.Logger().Error(err.Error())
 		return c.JSON(http.StatusBadRequest, err.Error())
@@ -74,12 +74,12 @@ func PostTrades(c echo.Context) error {
 
 func PostMakerByTradeID(c echo.Context) error {
 	// Find & verify wallet
-	tradeMakerReqBody := models.NewTradeMakerReqBody()
-	if err := c.Bind(tradeMakerReqBody); err != nil {
+	makerReqBody := new(models.SideReqBody)
+	if err := c.Bind(makerReqBody); err != nil {
 		c.Logger().Error(err.Error())
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
-	wallet, err := models.GetWalletByID(tradeMakerReqBody.WalletID)
+	wallet, err := models.GetWalletByID(makerReqBody.WalletID)
 	if err != nil {
 		if err.Error() == stores.MONGO_ERR_NOT_FOUND {
 			c.Logger().Error(err)
@@ -131,7 +131,7 @@ func PostMakerByTradeID(c echo.Context) error {
 	//}
 
 	// Get maker inscriptions for trade, ensure maker owns those inscriptions, & append to maker side
-	if err := parseMakerAssets(c, trade, maker, tradeMakerReqBody); err != nil {
+	if err := parseMakerAssets(c, trade, maker, makerReqBody); err != nil {
 		c.Logger().Error(err)
 		return err
 	}
@@ -165,12 +165,12 @@ func PostMakerByTradeID(c echo.Context) error {
 func PostOfferByTradeID(c echo.Context) error {
 	// Find & verify wallet
 	// TODO: fix semantics
-	tradeMakerReqBody := models.NewTradeMakerReqBody()
-	if err := c.Bind(tradeMakerReqBody); err != nil {
+	makerReqBody := new(models.SideReqBody)
+	if err := c.Bind(makerReqBody); err != nil {
 		c.Logger().Error(err.Error())
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
-	wallet, err := models.GetWalletByID(tradeMakerReqBody.WalletID)
+	wallet, err := models.GetWalletByID(makerReqBody.WalletID)
 	if err != nil {
 		if err.Error() == stores.MONGO_ERR_NOT_FOUND {
 			c.Logger().Error(err)
@@ -199,7 +199,7 @@ func PostOfferByTradeID(c echo.Context) error {
 	// Create side & get maker inscriptions for offer, ensure maker owns those inscriptions, & append to maker side
 	maker := models.NewSide(wallet.ID)
 	maker.Wallet = wallet
-	if err := parseMakerAssets(c, trade, maker, tradeMakerReqBody); err != nil {
+	if err := parseMakerAssets(c, trade, maker, makerReqBody); err != nil {
 		c.Logger().Error(err)
 		return err
 	}
@@ -335,7 +335,7 @@ func parseMakerAssets(
 	c echo.Context,
 	trade *models.Trade,
 	maker *models.Side,
-	tradeMakerReqBody *models.TradeMakerReqBody,
+	makerReqBody *models.SideReqBody,
 ) error {
 	// TODO: cover wallets that have inscriptions greater then 100 (pagination)
 	makerInscriptions, err := services.BESTINSLOT.GetInscriptionsByWalletAddr(
@@ -349,7 +349,7 @@ func parseMakerAssets(
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 	found := map[int64]bool{}
-	for _, inscriptionNum := range tradeMakerReqBody.InscriptionNumbers {
+	for _, inscriptionNum := range makerReqBody.InscriptionNumbers {
 		found[inscriptionNum] = false
 		for _, makerInscription := range makerInscriptions.Data {
 			if makerInscription.InscriptionNumber == inscriptionNum {
@@ -369,14 +369,14 @@ func parseMakerAssets(
 	inscriptions := []*models.Inscription{}
 	for _, makerInscription := range makerInscriptions.Data {
 		inscription := models.ParseBISInscription(makerInscription)
-		for _, incriptionNum := range tradeMakerReqBody.InscriptionNumbers {
+		for _, incriptionNum := range makerReqBody.InscriptionNumbers {
 			if incriptionNum == inscription.InscriptionNumber {
 				inscriptions = append(inscriptions, inscription)
 			}
 		}
 	}
 	maker.Inscriptions = inscriptions
-	maker.InscriptionNumbers = tradeMakerReqBody.InscriptionNumbers
+	maker.InscriptionNumbers = makerReqBody.InscriptionNumbers
 
 	// Ensure maker has enough BTC for the offer
 	// TODO: revisit to harden logic everywhere
@@ -434,12 +434,12 @@ func parseMakerAssets(
 	for _, utxo := range makerPaymentUTXOs {
 		makerAvailableBTC = makerAvailableBTC + utxo.Value
 	}
-	if makerAvailableBTC < tradeMakerReqBody.BTC {
+	if makerAvailableBTC < makerReqBody.BTC {
 		err := errors.New(fmt.Sprintf("maker does not have enough available BTC for trade"))
 		c.Logger().Error(err)
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
-	maker.BTC = tradeMakerReqBody.BTC
+	maker.BTC = makerReqBody.BTC
 
 	//// TODO: query ordex for extra inscription information (floor price, previous tx, more...)
 	//// look for another endpoint called get inscriptions by id (multiple same time)
