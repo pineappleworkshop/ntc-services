@@ -512,6 +512,53 @@ func UTXOs(c echo.Context) error {
 	return c.JSON(http.StatusOK, nil)
 }
 
+func Broadcast(c echo.Context) error {
+	//txHex := "020000000382898dcd771fc4ea01214fe7a48842aa124680d448dc3574456a0b632d2028560000000000ffffffff97fe1129765f9b96fdd748cf5814e99b341d7b5585d4f3cddb5e78ea7ed659220100000000ffffffff1a8fe558a262d752f05218d26f1d3d6ffafbe7981797a18341f418a45e5d1b380000000000ffffffff062202000000000000225120310e886d1ca084c79172f77350a260b61aee83b0f1b78ac058479e203a12a8cd92240100000000002251207aeaf0a064e5ae738eee3552912d47c4b7734c3ba6a1189d4c2114a166d47076f40100000000000017a9147265c2aec1412779e4d515ffab06f3303be70eef87a0860100000000002251207aeaf0a064e5ae738eee3552912d47c4b7734c3ba6a1189d4c2114a166d470768d02030000000000225120310e886d1ca084c79172f77350a260b61aee83b0f1b78ac058479e203a12a8cdf40100000000000017a9147265c2aec1412779e4d515ffab06f3303be70eef8700000000"
+	txHex := "020000000382898dcd771fc4ea01214fe7a48842aa124680d448dc3574456a0b632d2028560000000000ffffffff97fe1129765f9b96fdd748cf5814e99b341d7b5585d4f3cddb5e78ea7ed659220100000000ffffffff1a8fe558a262d752f05218d26f1d3d6ffafbe7981797a18341f418a45e5d1b380000000000ffffffff062202000000000000225120310e886d1ca084c79172f77350a260b61aee83b0f1b78ac058479e203a12a8cdce1e0100000000002251207aeaf0a064e5ae738eee3552912d47c4b7734c3ba6a1189d4c2114a166d47076580200000000000017a9147265c2aec1412779e4d515ffab06f3303be70eef87a0860100000000002251207aeaf0a064e5ae738eee3552912d47c4b7734c3ba6a1189d4c2114a166d47076c9fc020000000000225120310e886d1ca084c79172f77350a260b61aee83b0f1b78ac058479e203a12a8cd580200000000000017a9147265c2aec1412779e4d515ffab06f3303be70eef8700000000"
+
+	// Decode the hex-encoded transaction
+	rawTxBytes, err := hex.DecodeString(txHex)
+	if err != nil {
+		c.Logger().Error(err)
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+	var msgTx wire.MsgTx
+	if err := msgTx.Deserialize(bytes.NewReader(rawTxBytes)); err != nil {
+		c.Logger().Error(err)
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	btcClient := services.NewBitcoinClient()
+	txid, err := btcClient.SendRawTransaction(&msgTx, false)
+	if err != nil {
+		c.Logger().Error(err)
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	//url := "https://blockstream.info/api/tx"
+	//resp, err := http.Post(url, "text/plain", bytes.NewBufferString(txHex))
+	//if err != nil {
+	//	c.Logger().Error(err)
+	//	return c.JSON(http.StatusBadRequest, err.Error())
+	//}
+	//defer resp.Body.Close()
+	//
+	//body, err := ioutil.ReadAll(resp.Body)
+	//if err != nil {
+	//	c.Logger().Error(err)
+	//	return c.JSON(http.StatusBadRequest, err.Error())
+	//}
+	//
+	//if resp.StatusCode != http.StatusOK {
+	//	c.Logger().Error(err)
+	//	return c.JSON(http.StatusBadRequest, err.Error())
+	//}
+
+	fmt.Printf("Transaction broadcasted with ID: %s\n", txid)
+
+	return c.JSON(http.StatusOK, txid)
+}
+
 // SignMethod defines the different ways a signer can sign, given a specific
 // input.
 type SignMethod uint8

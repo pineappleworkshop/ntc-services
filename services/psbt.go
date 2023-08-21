@@ -1,17 +1,30 @@
 package services
 
 import (
+	"bytes"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"github.com/btcsuite/btcd/btcutil"
+	"github.com/btcsuite/btcd/btcutil/psbt"
 	"github.com/btcsuite/btcd/wire"
+	"github.com/labstack/echo/v4"
 	"math"
 	"ntc-services/models"
 	"regexp"
 	"strconv"
 	"strings"
 )
+
+type PSBTReqBody struct {
+	Inputs  map[int]*models.Input  `json:"inputs"`
+	Outputs map[int]*models.Output `json:"outputs"`
+}
+
+type PSBTRespBody struct {
+	//Bytes  []byte `json:"bytes"`
+	Base64 string `json:"base64"`
+}
 
 type PSBT struct {
 	Trade                 *models.Trade
@@ -28,31 +41,12 @@ type PSBT struct {
 	MakerChange           int64
 	TakerChange           int64
 	PlatformFee           int64
-	NetworkFee            int64
-	Inputs                map[int]*Input  `json:"inputs"`
-	Outputs               map[int]*Output `json:"outputs"`
-}
-
-type PSBTReqBody struct {
-	Inputs  map[int]*Input  `json:"inputs"`
-	Outputs map[int]*Output `json:"outputs"`
-}
-
-type Input struct {
-	Addr        string `json:"addr"`
-	PublicKey   string `json:"public_key"`
-	Type        string `json:"type"`
-	TxID        string `json:"tx_id"`
-	Index       int64  `json:"index"`
-	WitnessUTXO struct {
-		Script string `json:"script"`
-		Amount int64  `json:"amount"`
-	} `json:"witness_utxo"`
-}
-
-type Output struct {
-	Addr  string `json:"addr"`
-	Value int64  `json:"value"`
+	MinerFee              int64
+	Inputs                map[int]*models.Input
+	Outputs               map[int]*models.Output
+	PreMinerFeePSBT       *models.PSBTSerialized
+	PostMinerFeePSBT      *models.PSBTSerialized
+	FinalizedPSBT         *models.PSBTSerialized
 }
 
 func NewPBST(
@@ -70,13 +64,13 @@ func NewPBST(
 		MakerPaymentUTXOs:     []*models.UTXO{},
 		TakerInscriptionUTXOs: []*models.UTXO{},
 		TakerPaymentUTXOs:     []*models.UTXO{},
-		Inputs:                map[int]*Input{},
-		Outputs:               map[int]*Output{},
+		Inputs:                map[int]*models.Input{},
+		Outputs:               map[int]*models.Output{},
 	}
 }
 
-func (p *PSBT) Create() error {
-	if err := p.selectInscriptionsUTXOs(); err != nil {
+func (p *PSBT) Create(c echo.Context) error {
+	if err := p.selectInscriptionsUTXOs(c); err != nil {
 		return err
 	}
 	if err := p.calculatePlatformFee(); err != nil {
@@ -108,35 +102,34 @@ func (p *PSBT) ToReq() *PSBTReqBody {
 	}
 }
 
-func (p *PSBT) selectInscriptionsUTXOs() error {
+func (p *PSBT) selectInscriptionsUTXOs(c echo.Context) error {
 	// MAKER: parse inscription UTXOs from all UTXOs
 	for i, utxo := range p.MakerUTXOsAll {
 		// Find matching UTXOs for inscriptions in trade and add
 		for _, inscription := range p.Trade.Maker.Inscriptions {
 			// Ensure inscriptionID has txID & index
-			inscriptionIdS := strings.Split(inscription.InscriptionID, "i")
-			if len(inscriptionIdS) != 2 {
-				// TODO: log
-				return errors.New("InscriptionID is not in the right format")
+			inscriptionIdS := strings.Split(inscription.Satpoint, ":")
+			if len(inscriptionIdS) != 3 {
+				err := errors.New("maker Inscription.Satpoint is not in the right format")
+				c.Logger().Error(err)
+				return err
 			}
-
 			// Ensure txID is valid
 			if valid := isValidTxID(inscriptionIdS[0]); !valid {
-				// TODO: log
-				return errors.New("Inscription TxID is not valid")
+				err := errors.New("maker Inscription.TxID is not valid")
+				c.Logger().Error(err)
+				return err
 			}
-
 			// Ensure index in int
 			if _, err := strconv.Atoi(inscriptionIdS[1]); err != nil {
-				// TODO: log
-				return errors.New("Inscription Index is not an integer")
+				err := errors.New("maker Inscription.Index is not an integer")
+				c.Logger().Error(err)
+				return err
 			}
-
 			// Parse inscription utxos and other utxos and remove for original list
 			if utxo.TxHashBigEndian == inscriptionIdS[0] {
 				p.MakerInscriptionUTXOs = append(p.MakerInscriptionUTXOs, utxo)
 				p.MakerUTXOsAll = append(p.MakerUTXOsAll[:i], p.MakerUTXOsAll[i+1:]...)
-
 				// Remove inscription from all inscriptions
 				for ii, inscriptionX := range p.MakerInscriptionsAll {
 					if inscription.InscriptionID == inscriptionX.InscriptionID {
@@ -145,30 +138,36 @@ func (p *PSBT) selectInscriptionsUTXOs() error {
 				}
 			}
 		}
-		// Remove the rest of inscription utxos
-		for _, inscription := range p.MakerInscriptionsAll {
-			// Ensure inscriptionID has txID & index
-			inscriptionIdS := strings.Split(inscription.InscriptionID, "i")
-			if len(inscriptionIdS) != 2 {
-				// TODO: log
-				return errors.New("InscriptionID is not in the right format")
-			}
-
-			// Ensure txID is valid
-			if valid := isValidTxID(inscriptionIdS[0]); !valid {
-				// TODO: log
-				return errors.New("Inscription TxID is not valid")
-			}
-
-			// Ensure index in int
-			if _, err := strconv.Atoi(inscriptionIdS[1]); err != nil {
-				// TODO: log
-				return errors.New("Inscription Index is not an integer")
-			}
-
+	}
+	// MAKER: remove all inscription UTXOs from all UTXOs
+	for _, inscription := range p.MakerInscriptionsAll {
+		// Ensure inscriptionID has txID & index
+		inscriptionIdS := strings.Split(inscription.Satpoint, ":")
+		if len(inscriptionIdS) != 3 {
+			err := errors.New("maker Inscription.Satpoint is not in the right format")
+			c.Logger().Error(err)
+			return err
+		}
+		// Ensure txID is valid
+		if valid := isValidTxID(inscriptionIdS[0]); !valid {
+			err := errors.New("maker Inscription.TxID is not valid")
+			c.Logger().Error(err)
+			return err
+		}
+		// Ensure index in int
+		index, err := strconv.Atoi(inscriptionIdS[1])
+		if err != nil {
+			err := errors.New("maker Inscription.Index is not an integer")
+			c.Logger().Error(err)
+			return err
+		}
+		for i, utxo := range p.MakerUTXOsAll {
 			// Remove inscription for original list
 			if utxo.TxHashBigEndian == inscriptionIdS[0] {
-				p.MakerUTXOsAll = append(p.MakerUTXOsAll[:i], p.MakerUTXOsAll[i+1:]...)
+				if utxo.TxOutputN == int64(index) {
+					p.MakerUTXOsAll = append(p.MakerUTXOsAll[:i], p.MakerUTXOsAll[i+1:]...)
+					break
+				}
 			}
 		}
 	}
@@ -178,29 +177,28 @@ func (p *PSBT) selectInscriptionsUTXOs() error {
 		// Find matching UTXOs for inscriptions in trade and add
 		for _, inscription := range p.Trade.Taker.Inscriptions {
 			// Ensure inscriptionID has txID & index
-			inscriptionIdS := strings.Split(inscription.InscriptionID, "i")
-			if len(inscriptionIdS) != 2 {
-				// TODO: log
-				return errors.New("InscriptionID is not in the right format")
+			inscriptionIdS := strings.Split(inscription.Satpoint, ":")
+			if len(inscriptionIdS) != 3 {
+				err := errors.New("taker Inscription.Satpoint is not in the right format")
+				c.Logger().Error(err)
+				return err
 			}
-
 			// Ensure txID is valid
 			if valid := isValidTxID(inscriptionIdS[0]); !valid {
-				// TODO: log
-				return errors.New("Inscription TxID is not valid")
+				err := errors.New("maker Inscription.TxID is not valid")
+				c.Logger().Error(err)
+				return err
 			}
-
 			// Ensure index in int
 			if _, err := strconv.Atoi(inscriptionIdS[1]); err != nil {
-				// TODO: log
-				return errors.New("Inscription Index is not an integer")
+				err := errors.New("maker Inscription.Index is not an integer")
+				c.Logger().Error(err)
+				return err
 			}
-
 			// Add inscription to psbt inscription utxos and remove for original list
 			if utxo.TxHashBigEndian == inscriptionIdS[0] {
 				p.TakerInscriptionUTXOs = append(p.TakerInscriptionUTXOs, utxo)
 				p.TakerUTXOsAll = append(p.TakerUTXOsAll[:i], p.TakerUTXOsAll[i+1:]...)
-
 				// Remove inscription from all inscriptions
 				for ii, inscriptionX := range p.TakerInscriptionsAll {
 					if inscription.InscriptionID == inscriptionX.InscriptionID {
@@ -209,30 +207,39 @@ func (p *PSBT) selectInscriptionsUTXOs() error {
 				}
 			}
 		}
-		// Remove the rest of inscription utxos
-		for _, inscription := range p.TakerInscriptionsAll {
-			// Ensure inscriptionID has txID & index
-			inscriptionIdS := strings.Split(inscription.InscriptionID, "i")
-			if len(inscriptionIdS) != 2 {
-				// TODO: log
-				return errors.New("InscriptionID is not in the right format")
-			}
+	}
+	// Taker: remove all inscription UTXOs from all UTXOs
+	for _, inscription := range p.TakerInscriptionsAll {
+		// Ensure inscriptionID has txID & index
+		inscriptionIdS := strings.Split(inscription.Satpoint, ":")
+		if len(inscriptionIdS) != 3 {
+			err := errors.New("taker Inscription.Satpoint is not in the right format")
+			c.Logger().Error(err)
+			return err
+		}
 
-			// Ensure txID is valid
-			if valid := isValidTxID(inscriptionIdS[0]); !valid {
-				// TODO: log
-				return errors.New("Inscription TxID is not valid")
-			}
+		// Ensure txID is valid
+		if valid := isValidTxID(inscriptionIdS[0]); !valid {
+			err := errors.New("taker Inscription.TxID is not valid")
+			c.Logger().Error(err)
+			return err
+		}
 
-			// Ensure index in int
-			if _, err := strconv.Atoi(inscriptionIdS[1]); err != nil {
-				// TODO: log
-				return errors.New("Inscription Index is not an integer")
-			}
+		// Ensure index in int
+		index, err := strconv.Atoi(inscriptionIdS[1])
+		if err != nil {
+			err := errors.New("taker Inscription.Index is not an integer")
+			c.Logger().Error(err)
+			return err
+		}
 
+		for i, utxo := range p.TakerUTXOsAll {
 			// Remove inscription for original list
 			if utxo.TxHashBigEndian == inscriptionIdS[0] {
-				p.TakerUTXOsAll = append(p.TakerUTXOsAll[:i], p.TakerUTXOsAll[i+1:]...)
+				if utxo.TxOutputN == int64(index) {
+					p.TakerUTXOsAll = append(p.TakerUTXOsAll[:i], p.TakerUTXOsAll[i+1:]...)
+					break
+				}
 			}
 		}
 	}
@@ -240,6 +247,7 @@ func (p *PSBT) selectInscriptionsUTXOs() error {
 	return nil
 }
 
+// TODO: revisit and handle beta testing with minimal fees
 func (p *PSBT) calculatePlatformFee() error {
 	// Calculate total fees and split between parties
 	totalPayments := p.Trade.Maker.BTC + p.Trade.Taker.BTC
@@ -258,7 +266,7 @@ func (p *PSBT) calculatePlatformFee() error {
 		if inscription.FloorPrice != nil {
 			totalInscriptionFloorPrices = totalInscriptionFloorPrices + *inscription.FloorPrice
 		} else {
-			totalInscriptionFloorPrices = totalInscriptionFloorPrices + int64(10000)
+			totalInscriptionFloorPrices = totalInscriptionFloorPrices + int64(12000)
 		}
 	}
 	p.PlatformFee = totalPayments/100 + totalInscriptionFloorPrices/100
@@ -276,7 +284,11 @@ func (p *PSBT) selectPaymentUTXOs() error {
 	for i, utxo := range p.MakerUTXOsAll {
 		makerUTXOsTotalValue = makerUTXOsTotalValue + utxo.Value
 		p.MakerPaymentUTXOs = append(p.MakerPaymentUTXOs, utxo)
-		p.MakerUTXOsAll = append(p.MakerUTXOsAll[:i], p.MakerUTXOsAll[i+1:]...)
+		if len(p.MakerUTXOsAll) > 1 {
+			p.MakerUTXOsAll = append(p.MakerUTXOsAll[:i], p.MakerUTXOsAll[i+1:]...)
+		} else {
+			p.MakerUTXOsAll = []*models.UTXO{}
+		}
 
 		// Check to see if payment is greater than needed
 		if makerUTXOsTotalValue >= p.MakerPayment {
@@ -296,10 +308,15 @@ func (p *PSBT) selectPaymentUTXOs() error {
 	takerUTXOsTotalValue := int64(0)
 	takerEnoughToPay := false
 	// Iterate through payment UTXOs and use UTXOs until payment is greater than needed
+
 	for i, utxo := range p.TakerUTXOsAll {
 		takerUTXOsTotalValue = takerUTXOsTotalValue + utxo.Value
 		p.TakerPaymentUTXOs = append(p.TakerPaymentUTXOs, utxo)
-		p.TakerUTXOsAll = append(p.TakerUTXOsAll[:i], p.TakerUTXOsAll[i+1:]...)
+		if len(p.TakerUTXOsAll) > 1 {
+			p.TakerUTXOsAll = append(p.TakerUTXOsAll[:i], p.TakerUTXOsAll[i+1:]...)
+		} else {
+			p.TakerUTXOsAll = []*models.UTXO{}
+		}
 
 		// Check to see if payment is greater than needed
 		if takerUTXOsTotalValue >= p.TakerPayment {
@@ -333,15 +350,15 @@ func (p *PSBT) createInscriptionInputs() error {
 	// Iterate through the maker inscriptions and create the proper outputs
 	for i, utxo := range p.MakerInscriptionUTXOs {
 		// Create input
-		input := new(Input)
+		input := new(models.Input)
 		input.Addr = p.Trade.Maker.Wallet.TapRootAddr
 		if p.Trade.Taker.Wallet.Type == "unisat" {
 			input.PublicKey = p.Trade.Maker.Wallet.TapRootPublicKey[2:]
 		} else { // xverse or hiro
 			input.PublicKey = p.Trade.Maker.Wallet.TapRootPublicKey
 		}
-		input.Type = "taproot"
-		input.TxID = utxo.TxHash
+		input.Type = "p2tr"
+		input.TxID = utxo.TxHashBigEndian
 		input.Index = utxo.TxOutputN
 		input.WitnessUTXO.Amount = utxo.Value
 		input.WitnessUTXO.Script = utxo.Script
@@ -354,15 +371,15 @@ func (p *PSBT) createInscriptionInputs() error {
 	// Iterate through the taker inscriptions and create the proper outputs
 	for i, utxo := range p.TakerInscriptionUTXOs {
 		// Create input
-		input := new(Input)
+		input := new(models.Input)
 		input.Addr = p.Trade.Taker.Wallet.TapRootAddr
 		if p.Trade.Taker.Wallet.Type == "unisat" {
-			input.PublicKey = p.Trade.Maker.Wallet.TapRootPublicKey[2:]
+			input.PublicKey = p.Trade.Taker.Wallet.TapRootPublicKey[2:]
 		} else { // xverse or hiro
-			input.PublicKey = p.Trade.Maker.Wallet.TapRootPublicKey
+			input.PublicKey = p.Trade.Taker.Wallet.TapRootPublicKey
 		}
-		input.Type = "taproot"
-		input.TxID = utxo.TxHash
+		input.Type = "p2tr"
+		input.TxID = utxo.TxHashBigEndian
 		input.Index = utxo.TxOutputN
 		input.WitnessUTXO.Amount = utxo.Value
 		input.WitnessUTXO.Script = utxo.Script
@@ -374,19 +391,15 @@ func (p *PSBT) createInscriptionInputs() error {
 	return nil
 }
 
-//type Output struct {
-//	RecipientAddr      string `json:"recipient_addr"`
-//	Value              int64  `json:"value"`
-//}
-
 func (p *PSBT) createInscriptionOutputs() error {
 	// MAKER: Create the inscription outputs
 	// Iterate through the maker inscriptions UTXOs and create outputs to the recipient
 	for i, utxo := range p.MakerInscriptionUTXOs {
 		// Create output
-		output := new(Output)
+		output := new(models.Output)
 		output.Addr = p.Trade.Taker.Wallet.TapRootAddr
 		output.Value = utxo.Value
+		output.IsInscription = true
 
 		// append to outputs
 		p.Outputs[i] = output
@@ -396,9 +409,10 @@ func (p *PSBT) createInscriptionOutputs() error {
 	// Iterate through the taker inscriptions UTXOs and create outputs to the recipient
 	for i, utxo := range p.TakerInscriptionUTXOs {
 		// Create output
-		output := new(Output)
+		output := new(models.Output)
 		output.Addr = p.Trade.Maker.Wallet.TapRootAddr
 		output.Value = utxo.Value
+		output.IsInscription = true
 
 		// append to outputs
 		p.Outputs[i] = output
@@ -424,20 +438,20 @@ func (p *PSBT) createPaymentInputs() error {
 	// Iterate through maker payment utxos and create input
 	for i, utxo := range p.MakerPaymentUTXOs {
 		// Create input
-		input := new(Input)
+		input := new(models.Input)
 		if p.Trade.Maker.Wallet.Type == "unisat" {
 			input.Addr = p.Trade.Maker.Wallet.TapRootAddr
-			input.PublicKey = p.Trade.Taker.Wallet.TapRootPublicKey[2:]
+			input.PublicKey = p.Trade.Maker.Wallet.TapRootPublicKey[2:]
 			input.Type = "p2tr"
 		} else if p.Trade.Maker.Wallet.Type == "xverse" || p.Trade.Maker.Wallet.Type == "hiro" {
-			input.Addr = p.Trade.Maker.Wallet.TapRootAddr
-			input.PublicKey = p.Trade.Maker.Wallet.TapRootPublicKey
+			input.Addr = p.Trade.Maker.Wallet.SegwitAddr
+			input.PublicKey = p.Trade.Maker.Wallet.SegwitPublicKey
 			input.Type = "p2sh"
 		} else {
 			// TODO: all logging
 			return errors.New("Invalid maker wallet type")
 		}
-		input.TxID = utxo.TxHash
+		input.TxID = utxo.TxHashBigEndian
 		input.Index = utxo.TxOutputN
 		input.WitnessUTXO.Amount = utxo.Value
 		input.WitnessUTXO.Script = utxo.Script
@@ -450,20 +464,20 @@ func (p *PSBT) createPaymentInputs() error {
 	// Iterate through taker payment utxos and create input
 	for i, utxo := range p.TakerPaymentUTXOs {
 		// Create input
-		input := new(Input)
+		input := new(models.Input)
 		if p.Trade.Taker.Wallet.Type == "unisat" {
 			input.Addr = p.Trade.Taker.Wallet.TapRootAddr
 			input.PublicKey = p.Trade.Taker.Wallet.TapRootPublicKey[2:]
 			input.Type = "p2tr"
 		} else if p.Trade.Taker.Wallet.Type == "xverse" || p.Trade.Taker.Wallet.Type == "hiro" {
-			input.Addr = p.Trade.Taker.Wallet.TapRootAddr
-			input.PublicKey = p.Trade.Taker.Wallet.TapRootPublicKey
+			input.Addr = p.Trade.Taker.Wallet.SegwitAddr
+			input.PublicKey = p.Trade.Taker.Wallet.SegwitPublicKey
 			input.Type = "p2sh"
 		} else {
 			// TODO: all logging
 			return errors.New("Invalid taker wallet type")
 		}
-		input.TxID = utxo.TxHash
+		input.TxID = utxo.TxHashBigEndian
 		input.Index = utxo.TxOutputN
 		input.WitnessUTXO.Amount = utxo.Value
 		input.WitnessUTXO.Script = utxo.Script
@@ -484,7 +498,7 @@ func (p *PSBT) createPaymentsOutputs() error {
 	// MAKER: Create the payments outputs
 	// Create output for payment from maker to taker
 	if p.Trade.Maker.BTC >= 546 {
-		makerPaymentOutput := new(Output)
+		makerPaymentOutput := new(models.Output)
 		if p.Trade.Taker.Wallet.Type == "unisat" {
 			makerPaymentOutput.Addr = p.Trade.Taker.Wallet.TapRootAddr
 		} else if p.Trade.Taker.Wallet.Type == "xverse" || p.Trade.Taker.Wallet.Type == "hiro" {
@@ -494,10 +508,11 @@ func (p *PSBT) createPaymentsOutputs() error {
 			return errors.New("Invalid taker wallet type")
 		}
 		makerPaymentOutput.Value = p.Trade.Maker.BTC
+		makerPaymentOutput.IsPayment = true
 		p.Outputs[len(p.Outputs)] = makerPaymentOutput
 	}
 	// Create output for maker change
-	makerChangeOutput := new(Output)
+	makerChangeOutput := new(models.Output)
 	if p.Trade.Maker.Wallet.Type == "unisat" {
 		makerChangeOutput.Addr = p.Trade.Maker.Wallet.TapRootAddr
 	} else if p.Trade.Taker.Wallet.Type == "xverse" || p.Trade.Taker.Wallet.Type == "hiro" {
@@ -507,17 +522,22 @@ func (p *PSBT) createPaymentsOutputs() error {
 		return errors.New("Invalid maker wallet type")
 	}
 	makerChangeOutput.Value = p.MakerChange
+	makerChangeOutput.IsChange = true
 	p.Outputs[len(p.Outputs)] = makerChangeOutput
 	// Create output for maker platform fee
-	makerPlatformFeeOutput := new(Output)
+	makerPlatformFeeOutput := new(models.Output)
 	makerPlatformFeeOutput.Addr = "3C7trrWesxpM5aHPTCPMeeBG418C5LvXbc"
 	makerPlatformFeeOutput.Value = p.PlatformFee / 2
+	if makerPlatformFeeOutput.Value < 600 {
+		makerPlatformFeeOutput.Value = 600
+	}
+	makerPlatformFeeOutput.IsFee = true
 	p.Outputs[len(p.Outputs)] = makerPlatformFeeOutput
 
 	// TAKER: Create the payments outputs
 	// Create output for payment from taker to maker
 	if p.Trade.Taker.BTC >= 546 {
-		takerPaymentOutput := new(Output)
+		takerPaymentOutput := new(models.Output)
 		if p.Trade.Maker.Wallet.Type == "unisat" {
 			takerPaymentOutput.Addr = p.Trade.Maker.Wallet.TapRootAddr
 		} else if p.Trade.Taker.Wallet.Type == "xverse" || p.Trade.Taker.Wallet.Type == "hiro" {
@@ -527,10 +547,11 @@ func (p *PSBT) createPaymentsOutputs() error {
 			return errors.New("Invalid taker wallet type")
 		}
 		takerPaymentOutput.Value = p.Trade.Taker.BTC
+		takerPaymentOutput.IsPayment = true
 		p.Outputs[len(p.Outputs)] = takerPaymentOutput
 	}
 	// Create output for taker change
-	takerChangeOutput := new(Output)
+	takerChangeOutput := new(models.Output)
 	if p.Trade.Taker.Wallet.Type == "unisat" {
 		takerChangeOutput.Addr = p.Trade.Taker.Wallet.TapRootAddr
 	} else if p.Trade.Taker.Wallet.Type == "xverse" || p.Trade.Taker.Wallet.Type == "hiro" {
@@ -540,23 +561,84 @@ func (p *PSBT) createPaymentsOutputs() error {
 		return errors.New("Invalid maker wallet type")
 	}
 	takerChangeOutput.Value = p.TakerChange
+	takerChangeOutput.IsChange = true
 	p.Outputs[len(p.Outputs)] = takerChangeOutput
 	// Create output for maker platform fee
-	takerPlatformFeeOutput := new(Output)
+	takerPlatformFeeOutput := new(models.Output)
 	takerPlatformFeeOutput.Addr = "3C7trrWesxpM5aHPTCPMeeBG418C5LvXbc"
 	takerPlatformFeeOutput.Value = p.PlatformFee / 2
+	if takerPlatformFeeOutput.Value < 600 {
+		takerPlatformFeeOutput.Value = 600
+	}
+	takerPlatformFeeOutput.IsFee = true
 	p.Outputs[len(p.Outputs)] = takerPlatformFeeOutput
 
 	return nil
 }
 
-func (p *PSBT) generatePSBT() {
+func (p *PSBT) adjustForMinerFee(minerFee int64) error {
+	feePerSide := minerFee / 2
+	p.MakerChange = p.MakerChange - feePerSide
+	p.TakerChange = p.TakerChange - feePerSide
 
-	// TODO: send raw Tx to get preliminary PSBT service
-	// TODO: measure gas and adjust the maker/taker change outputs
-	// TODO: send finalized Tx to PSBT service
-	// TODO: store all data accordingly
+	for _, output := range p.Outputs {
+		if output.IsChange {
+			output.Value = output.Value - feePerSide
+		}
+	}
 
+	return nil
+}
+
+func (p *PSBT) GeneratePSBT(c echo.Context) (*models.PSBT, error) {
+	// Send psbt to psbt service to create initial psbt without gas
+	preMinerFeePSBTResp, err := NTCPSBT.PostPSBT(p.ToReq())
+	if err != nil {
+		c.Logger().Error(err)
+		return nil, err
+	}
+	p.PreMinerFeePSBT = preMinerFeePSBTResp
+	preMinerFeePSBT, err := psbt.NewFromRawBytes(bytes.NewReader([]byte(preMinerFeePSBTResp.Base64)), true)
+	if err != nil {
+		c.Logger().Error(err)
+		return nil, err
+	}
+
+	// Measure gas and adjust the maker/taker change outputs
+	minerFee, err := calculateMinerFeeForPSBT(preMinerFeePSBT.UnsignedTx, float64(p.Trade.FeeRate))
+	if err != nil {
+		c.Logger().Error(err)
+		return nil, err
+	}
+	p.MinerFee = minerFee
+	if err := p.adjustForMinerFee(minerFee); err != nil {
+		c.Logger().Error(err)
+		return nil, err
+	}
+
+	// Send finalized Tx to PSBT service
+	postMinerFeePSBTResp, err := NTCPSBT.PostPSBT(p.ToReq())
+	if err != nil {
+		c.Logger().Error(err)
+		return nil, err
+	}
+	p.PostMinerFeePSBT = postMinerFeePSBTResp
+
+	psbtModel := &models.PSBT{
+		MakerPayment:     p.MakerPayment,
+		TakerPayment:     p.TakerPayment,
+		MakerChange:      p.MakerChange,
+		TakerChange:      p.TakerChange,
+		PlatformFee:      p.PlatformFee,
+		MinerFee:         p.MinerFee,
+		Inputs:           p.Inputs,
+		Outputs:          p.Outputs,
+		PreMinerFeePSBT:  p.PreMinerFeePSBT,
+		PostMinerFeePSBT: p.PostMinerFeePSBT,
+		FinalizedPSBT:    nil,
+	}
+
+	return psbtModel, nil
 }
 
 // isValidTxID checks if the given txID adheres to the expected format of a Bitcoin transaction ID.
@@ -607,7 +689,6 @@ func extractTaprootInternalPublicKeyFromAddress(addr string) (string, error) {
 	}
 	if wa, ok := decodedAddress.(*btcutil.AddressTaproot); ok {
 		encodedKeyHex := hex.EncodeToString(wa.WitnessProgram())
-
 		return encodedKeyHex, nil
 	}
 

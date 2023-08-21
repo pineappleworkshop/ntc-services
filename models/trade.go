@@ -11,9 +11,10 @@ import (
 )
 
 type TradeReqBody struct {
-	WalletType  string `json:"wallet_type" bson:"wallet_type"`
-	TapRootAddr string `json:"tap_root_addr" bson:"tap_root_addr"`
-	SegwitAddr  string `json:"segwit_addr" bson:"segwit_addr"`
+	WalletID           string  `json:"wallet_id"`
+	BTC                int64   `json:"btc" bson:"btc"`
+	InscriptionNumbers []int64 `json:"inscription_numbers" bson:"inscription_numbers"`
+	FeeRate            int32   `json:"fee_rate"`
 }
 
 type Trades struct {
@@ -28,8 +29,6 @@ type Trade struct {
 	Maker           *Side               `json:"maker" bson:"-"`
 	TakerID         *primitive.ObjectID `json:"taker_id" bson:"taker_id"`
 	Taker           *Side               `json:"taker" bson:"-"`
-	Offers          []*Offer            `json:"offers" bson:"-"`
-	PSBT            *string             `json:"psbt" bson:"psbt"`
 	FeeRate         int32               `json:"fee_rate" bson:"fee_rate"`
 	PlatformFee     *int64              `json:"platform_fee" bson:"platform_fee"`
 	TxID            *string             `json:"tx_id" bson:"tx_id"`
@@ -37,12 +36,15 @@ type Trade struct {
 	StatusChangedAt *int64              `json:"status_changed_at" bson:"status_changed_at"`
 	CreatedAt       int64               `json:"created_at" bson:"created_at"`
 	UpdatedAt       *int64              `json:"updated_at" bson:"updated_at"`
+	PSBT            *PSBT               `json:"psbt" bson:"psbt"`
+	Offers          []*Offer            `json:"offers" bson:"-"`
 }
 
-func NewTrade(makerID primitive.ObjectID) *Trade {
+func NewTrade(makerID primitive.ObjectID, feeRate int32) *Trade {
 	return &Trade{
 		ID:        primitive.NewObjectID(),
 		MakerID:   makerID,
+		FeeRate:   feeRate,
 		Status:    "CREATED",
 		CreatedAt: time.Now().Unix(),
 	}

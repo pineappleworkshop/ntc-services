@@ -70,7 +70,7 @@ func initPublicRoutes(e *echo.Echo) {
 
 	// trades
 	e.POST("/trades", handlers.PostTrades)
-	e.POST("/trades/:id/maker", handlers.PostMakerByTradeID)
+	//e.POST("/trades/:id/maker", handlers.PostMakerByTradeID)
 	e.GET("/trades", handlers.GetTrades)
 	e.GET("/trades/:id", handlers.GetTradeByID)
 	e.POST("/trades/:id/offers", handlers.PostOfferByTradeID)
@@ -86,4 +86,5 @@ func initPublicRoutes(e *echo.Echo) {
 	e.GET("/experiments/from-unsigned-tx", handlers.PSBTFromUnsignedTx)
 	e.GET("/experiments/psbt", handlers.GeneratePSBT)
 	e.GET("/experiments/utxos", handlers.UTXOs)
+	e.GET("/experiments/broadcast", handlers.Broadcast)
 }

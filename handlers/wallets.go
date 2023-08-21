@@ -103,6 +103,54 @@ func GetWalletByID(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 
+	if err := getWalletAssetsByID(c, wallet); err != nil {
+		c.Logger().Error(err)
+		return err
+	}
+
+	return c.JSON(http.StatusOK, wallet)
+}
+
+func GetWalletByAddr(c echo.Context) error {
+	addr := c.Param("addr")
+	addrType, err := models.GetAddressType(addr)
+	if err != nil {
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+	wallet, err := models.GetWalletByAddr(addr, addrType)
+	if err != nil {
+		c.Logger().Error(err)
+		return c.JSON(http.StatusInternalServerError, err.Error())
+	}
+	if wallet == nil {
+		wallet := models.NewWallet()
+		wallet.Type = addrType
+		if wallet.Type == models.ADDRESS_SEGWIT {
+			wallet.SegwitAddr = addr
+		} else if wallet.Type == models.ADDRESS_TAPROOT {
+			wallet.TapRootAddr = addr
+		} else {
+			c.Logger().Error("Invalid Address")
+			return c.JSON(http.StatusNotFound, "Invalid Address")
+		}
+		if err := wallet.Save(); err != nil {
+			c.Logger().Error(err)
+			return c.JSON(http.StatusInternalServerError, err.Error())
+		}
+	}
+
+	return c.JSON(http.StatusOK, wallet)
+}
+
+func PostWalletsConnected(c echo.Context) error {
+	// todo: define what is going to be passed here (the wallet_id?) so we can find the wallet in DB and update:
+	// `last_connected_at` & `last_connected_block`
+
+	return c.JSON(http.StatusCreated, nil)
+}
+
+func getWalletAssetsByID(c echo.Context, wallet *models.Wallet) error {
 	// Get all wallet inscriptions
 	// TODO: cover wallets that have inscriptions greater then 100 (pagination)
 	makerInscriptions, err := services.BESTINSLOT.GetInscriptionsByWalletAddr(
@@ -111,7 +159,7 @@ func GetWalletByID(c echo.Context) error {
 		100,
 		1,
 	)
-	inscriptions := []*models.Inscription{}
+	var inscriptions []*models.Inscription
 	for _, makerInscription := range makerInscriptions.Data {
 		inscription := models.ParseBISInscription(makerInscription)
 		inscriptions = append(inscriptions, inscription)
@@ -157,44 +205,5 @@ func GetWalletByID(c echo.Context) error {
 		wallet.UTXOs = append(wallet.UTXOs, utxo)
 	}
 
-	return c.JSON(http.StatusOK, wallet)
-}
-
-func GetWalletByAddr(c echo.Context) error {
-	addr := c.Param("addr")
-	addrType, err := models.GetAddressType(addr)
-	if err != nil {
-		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, err.Error())
-	}
-	wallet, err := models.GetWalletByAddr(addr, addrType)
-	if err != nil {
-		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, err.Error())
-	}
-	if wallet == nil {
-		wallet := models.NewWallet()
-		wallet.Type = addrType
-		if wallet.Type == models.ADDRESS_SEGWIT {
-			wallet.SegwitAddr = addr
-		} else if wallet.Type == models.ADDRESS_TAPROOT {
-			wallet.TapRootAddr = addr
-		} else {
-			c.Logger().Error("Invalid Address")
-			return c.JSON(http.StatusNotFound, "Invalid Address")
-		}
-		if err := wallet.Save(); err != nil {
-			c.Logger().Error(err)
-			return c.JSON(http.StatusInternalServerError, err.Error())
-		}
-	}
-
-	return c.JSON(http.StatusOK, wallet)
-}
-
-func PostWalletsConnected(c echo.Context) error {
-	// todo: define what is going to be passed here (the wallet_id?) so we can find the wallet in DB and update:
-	// `last_connected_at` & `last_connected_block`
-
-	return c.JSON(http.StatusCreated, nil)
+	return nil
 }

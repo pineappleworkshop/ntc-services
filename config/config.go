@@ -199,3 +199,14 @@ func GetOrdexBaseURL() (string, error) {
 	}
 	return baseURL, nil
 }
+
+func GetNtcBSPT() (string, error) {
+	if Conf.Env != "dev" && Conf.Env != "prod" {
+		return "http://localhost:3001", nil
+	}
+	baseURL := viper.GetString("ntc_psbt_url")
+	if baseURL == "" {
+		return "err", errors.New("no Ordex base URL found")
+	}
+	return baseURL, nil
+}

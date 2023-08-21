@@ -23,6 +23,7 @@ type Offer struct {
 	TradeID         primitive.ObjectID `json:"trade_id" bson:"trade_id"`
 	MakerID         primitive.ObjectID `json:"maker_id" bson:"maker_id"`
 	Maker           *Side              `json:"maker" bson:"maker"`
+	PSBT            *PSBT              `json:"psbt" bson:"psbt"`
 	Status          string             `json:"status" bson:"status"`
 	StatusChangedAt *int64             `json:"status_changed_at" bson:"status_changed_at"`
 	CreatedAt       int64              `json:"created_at" bson:"created_at"`
