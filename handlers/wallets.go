@@ -166,7 +166,7 @@ func getWalletAssetsByID(c echo.Context, wallet *models.Wallet) error {
 	}
 	wallet.Inscriptions = inscriptions
 
-	// Get all wallet utxos
+	// Get all wallet UTXOs
 	// TODO: check blockinfo API response for pagination
 	var makerPaymentAddr string
 	if wallet.Type == "unisat" {

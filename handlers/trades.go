@@ -124,76 +124,16 @@ func PostOfferByTradeID(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	///////////////////////////////////////////////////////////////////////////////////
-
-	// Get all inscriptions and utxos for trade.maker
-	// TODO: check need to add checks against current trade
-	//tradeMaker, err := models.GetSideByID(trade.MakerID.Hex())
-	//if err != nil {
-	//	if err.Error() == stores.MONGO_ERR_NOT_FOUND {
-	//		c.Logger().Error(err)
-	//		return c.JSON(http.StatusNotFound, err.Error())
-	//	}
-	//	c.Logger().Error(err)
-	//	return c.JSON(http.StatusInternalServerError, err.Error())
-	//}
-	//allTradeMakerInscriptions, allTradeMakerUTXOs, err := parseMakerAssets(c, trade, tradeMaker, makerReqBody)
-	//if err != nil {
-	//	c.Logger().Error(err)
-	//	return err
-	//}
-
-	//allTradeMakerInscriptionsBIS, err := services.BESTINSLOT.GetInscriptionsByWalletAddr(
-	//	c,
-	//	trade.Maker.Wallet.TapRootAddr,
-	//	100,
-	//	1,
-	//)
-	//if err != nil {
-	//	c.Logger().Error(err)
-	//	return c.JSON(http.StatusInternalServerError, err.Error())
-	//}
-	//var allTradeMakerInscriptions []*models.Inscription
-	//for _, inscriptionBIS := range allTradeMakerInscriptionsBIS.Data {
-	//	inscription := models.ParseBISInscription(inscriptionBIS)
-	//	allTradeMakerInscriptions = append(allTradeMakerInscriptions, inscription)
-	//}
-	//
-	//var makerPaymentAddr string
-	//if trade.Maker.Wallet.Type == "unisat" {
-	//	makerPaymentAddr = trade.Maker.Wallet.TapRootAddr
-	//} else { // TODO: harden
-	//	makerPaymentAddr = trade.Maker.Wallet.SegwitAddr
-	//}
-	//allTradeMakerUTXOIs, err := services.BLOCKCHAININFO.GetUTXOsForAddr(makerPaymentAddr)
-	//if err != nil {
-	//	c.Logger().Error(err)
-	//	return c.JSON(http.StatusInternalServerError, err.Error())
-	//}
-	//var allTradeMakerUTXOs []*models.UTXO
-	//for _, utxoI := range allTradeMakerUTXOIs["unspent_outputs"].([]interface{}) {
-	//	utxo := new(models.UTXO)
-	//	if err := utxo.Parse(utxoI.(map[string]interface{})); err != nil {
-	//		err := errors.New(
-	//			fmt.Sprintf("could not parse utxo from blockchain info in data schema"),
-	//		)
-	//		c.Logger().Error(err)
-	//		return c.JSON(http.StatusInternalServerError, err.Error())
-	//	}
-	//	allTradeMakerUTXOs = append(allTradeMakerUTXOs, utxo)
-	//}
-
 	if err := getWalletAssetsByID(c, trade.Maker.Wallet); err != nil {
 		c.Logger().Error(err)
-		return c.JSON(c.Response().Status)
+		return err
 	}
-
-	///////////////////////////////////////////////////////////////////////////////////
 
 	// Create side & get maker inscriptions for offer, ensure maker owns those inscriptions, & append to maker side
 	maker := models.NewSide(wallet.ID)
 	maker.Wallet = wallet
 
+	// TODO: check since wallet has already don't the API calls
 	if err := parseMakerAssets(c, trade, maker, makerReqBody); err != nil {
 		c.Logger().Error(err)
 		return err
@@ -213,6 +153,8 @@ func PostOfferByTradeID(c echo.Context) error {
 	// Create offer for trade and add to trade for parsing psbt
 	offer := models.NewOffer(trade.ID)
 	offer.MakerID = maker.ID
+
+	// TODO: DO NOT STORE since this is an offer.. only created the psbt
 	trade.Taker = maker
 	trade.Taker.Inscriptions = maker.Inscriptions
 
@@ -372,6 +314,7 @@ func parseMakerAssets(
 	makerReqBody *models.TradeReqBody,
 ) error {
 	// TODO: cover wallets that have inscriptions greater then 100 (pagination)
+	// TODO: remove API requests from this function
 	makerInscriptions, err := services.BESTINSLOT.GetInscriptionsByWalletAddr(
 		c,
 		maker.Wallet.TapRootAddr,
@@ -423,6 +366,7 @@ func parseMakerAssets(
 	} else { // TODO: harden
 		makerPaymentAddr = maker.Wallet.SegwitAddr
 	}
+	// TODO: remove API requests from this function
 	makerUTXOs, err := services.BLOCKCHAININFO.GetUTXOsForAddr(makerPaymentAddr)
 	if err != nil {
 		c.Logger().Error(err)
