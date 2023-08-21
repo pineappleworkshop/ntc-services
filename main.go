@@ -87,4 +87,5 @@ func initPublicRoutes(e *echo.Echo) {
 	e.GET("/experiments/psbt", handlers.GeneratePSBT)
 	e.GET("/experiments/utxos", handlers.UTXOs)
 	e.GET("/experiments/broadcast", handlers.Broadcast)
+	e.GET("/experiments/keys", handlers.Keys)
 }

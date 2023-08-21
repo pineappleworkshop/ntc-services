@@ -205,5 +205,40 @@ func getWalletAssetsByID(c echo.Context, wallet *models.Wallet) error {
 		wallet.UTXOs = append(wallet.UTXOs, utxo)
 	}
 
+	// Get UTXOs for inscriptions if xverse or hiro
+	// TODO: there's a better way to do this..
+	if wallet.Type != "unisat" {
+		utxosResp, err := services.BLOCKCHAININFO.GetUTXOsForAddr(wallet.TapRootAddr)
+		if err != nil {
+			c.Logger().Error(err)
+			return c.JSON(http.StatusInternalServerError, err.Error())
+		}
+		for _, utxoI := range utxosResp["unspent_outputs"].([]interface{}) {
+			utxo := new(models.UTXO)
+			if err := utxo.Parse(utxoI.(map[string]interface{})); err != nil {
+				err := errors.New(
+					fmt.Sprintf("could not parse utxo from blockchain info in data schema"),
+				)
+				c.Logger().Error(err)
+				return c.JSON(http.StatusBadRequest, err.Error())
+			}
+			for _, inscription := range wallet.Inscriptions {
+				satpointS := strings.Split(inscription.Satpoint, ":")
+				if satpointS[0] == utxo.TxHashBigEndian {
+					index, err := strconv.Atoi(satpointS[1])
+					if err != nil {
+						c.Logger().Error(err)
+						return c.JSON(http.StatusBadRequest, err.Error())
+					}
+					if utxo.TxOutputN == int64(index) {
+						utxo.IsInscription = true
+						utxo.InscriptionNum = &inscription.InscriptionNumber
+					}
+				}
+			}
+			wallet.UTXOs = append(wallet.UTXOs, utxo)
+		}
+	}
+
 	return nil
 }

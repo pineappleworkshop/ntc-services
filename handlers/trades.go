@@ -47,6 +47,10 @@ func PostTrades(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 	maker.Wallet = wallet
+	if err := getWalletAssetsByID(c, maker.Wallet); err != nil {
+		c.Logger().Error(err)
+		return err
+	}
 
 	// Create trade & store
 	trade := models.NewTrade(maker.ID, tradeReqBody.FeeRate)
@@ -132,14 +136,13 @@ func PostOfferByTradeID(c echo.Context) error {
 	// Create side & get maker inscriptions for offer, ensure maker owns those inscriptions, & append to maker side
 	maker := models.NewSide(wallet.ID)
 	maker.Wallet = wallet
-
-	// TODO: check since wallet has already don't the API calls
-	if err := parseMakerAssets(c, trade, maker, makerReqBody); err != nil {
+	if err := getWalletAssetsByID(c, maker.Wallet); err != nil {
 		c.Logger().Error(err)
 		return err
 	}
 
-	if err := getWalletAssetsByID(c, maker.Wallet); err != nil {
+	// TODO: check since wallet has already don't the API calls
+	if err := parseMakerAssets(c, trade, maker, makerReqBody); err != nil {
 		c.Logger().Error(err)
 		return err
 	}
@@ -313,22 +316,11 @@ func parseMakerAssets(
 	maker *models.Side,
 	makerReqBody *models.TradeReqBody,
 ) error {
-	// TODO: cover wallets that have inscriptions greater then 100 (pagination)
-	// TODO: remove API requests from this function
-	makerInscriptions, err := services.BESTINSLOT.GetInscriptionsByWalletAddr(
-		c,
-		maker.Wallet.TapRootAddr,
-		100,
-		1,
-	)
-	if err != nil {
-		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, err.Error())
-	}
+	// Ensure wallet has the trade inscriptions and add to side
 	found := map[int64]bool{}
 	for _, inscriptionNum := range makerReqBody.InscriptionNumbers {
 		found[inscriptionNum] = false
-		for _, makerInscription := range makerInscriptions.Data {
+		for _, makerInscription := range maker.Wallet.Inscriptions {
 			if makerInscription.InscriptionNumber == inscriptionNum {
 				found[inscriptionNum] = true
 			}
@@ -343,53 +335,25 @@ func parseMakerAssets(
 			return c.JSON(http.StatusBadRequest, err.Error())
 		}
 	}
-
-	var allInscriptions []*models.Inscription
 	var sideInscriptions []*models.Inscription
-	for _, makerInscription := range makerInscriptions.Data {
-		inscription := models.ParseBISInscription(makerInscription)
+	for _, inscription := range maker.Wallet.Inscriptions {
 		for _, inscriptionNum := range makerReqBody.InscriptionNumbers {
 			if inscriptionNum == inscription.InscriptionNumber {
 				sideInscriptions = append(sideInscriptions, inscription)
 			}
-			allInscriptions = append(allInscriptions, inscription)
 		}
 	}
 	maker.Inscriptions = sideInscriptions
 	maker.InscriptionNumbers = makerReqBody.InscriptionNumbers
 
 	// Ensure maker has enough BTC for the offer
-	// TODO: revisit to harden logic everywhere
-	var makerPaymentAddr string
-	if maker.Wallet.Type == "unisat" {
-		makerPaymentAddr = maker.Wallet.TapRootAddr
-	} else { // TODO: harden
-		makerPaymentAddr = maker.Wallet.SegwitAddr
-	}
-	// TODO: remove API requests from this function
-	makerUTXOs, err := services.BLOCKCHAININFO.GetUTXOsForAddr(makerPaymentAddr)
-	if err != nil {
-		c.Logger().Error(err)
-		return c.JSON(http.StatusInternalServerError, err.Error())
-	}
-
-	// TODO: there's something fucked up with this logic
-	var allMakerUTXOs []*models.UTXO
+	// Separate payment UTXOs from inscription UTXOs
+	// TODO: there's something fucked up with this logic, still?
 	var makerPaymentUTXOs []*models.UTXO
-	for _, utxoI := range makerUTXOs["unspent_outputs"].([]interface{}) {
-		utxo := new(models.UTXO)
-		if err := utxo.Parse(utxoI.(map[string]interface{})); err != nil {
-			err := errors.New(
-				fmt.Sprintf("could not parse utxo from blockchain info in data schema"),
-			)
-			c.Logger().Error(err)
-			return c.JSON(http.StatusBadRequest, err.Error())
-		}
-		allMakerUTXOs = append(allMakerUTXOs, utxo)
-
+	for _, utxo := range maker.Wallet.UTXOs {
 		found := false
 		if len(maker.Inscriptions) > 0 {
-			for _, inscription := range allInscriptions {
+			for _, inscription := range maker.Wallet.Inscriptions {
 				inscriptionIDS := strings.Split(inscription.Satpoint, ":")
 				if len(inscriptionIDS) != 3 {
 					err := errors.New(
@@ -420,6 +384,7 @@ func parseMakerAssets(
 		}
 	}
 
+	// Ensure wallet has enough payment UTXOs to cover BTC cost and add to side
 	makerAvailableBTC := int64(0)
 	for _, utxo := range makerPaymentUTXOs {
 		makerAvailableBTC = makerAvailableBTC + utxo.Value

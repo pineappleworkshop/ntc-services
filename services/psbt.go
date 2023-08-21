@@ -352,7 +352,7 @@ func (p *PSBT) createInscriptionInputs() error {
 		// Create input
 		input := new(models.Input)
 		input.Addr = p.Trade.Maker.Wallet.TapRootAddr
-		if p.Trade.Taker.Wallet.Type == "unisat" {
+		if p.Trade.Maker.Wallet.Type == "unisat" {
 			input.PublicKey = p.Trade.Maker.Wallet.TapRootPublicKey[2:]
 		} else { // xverse or hiro
 			input.PublicKey = p.Trade.Maker.Wallet.TapRootPublicKey
@@ -446,7 +446,7 @@ func (p *PSBT) createPaymentInputs() error {
 		} else if p.Trade.Maker.Wallet.Type == "xverse" || p.Trade.Maker.Wallet.Type == "hiro" {
 			input.Addr = p.Trade.Maker.Wallet.SegwitAddr
 			input.PublicKey = p.Trade.Maker.Wallet.SegwitPublicKey
-			input.Type = "p2sh"
+			input.Type = "p2wpkh"
 		} else {
 			// TODO: all logging
 			return errors.New("Invalid maker wallet type")
@@ -472,7 +472,7 @@ func (p *PSBT) createPaymentInputs() error {
 		} else if p.Trade.Taker.Wallet.Type == "xverse" || p.Trade.Taker.Wallet.Type == "hiro" {
 			input.Addr = p.Trade.Taker.Wallet.SegwitAddr
 			input.PublicKey = p.Trade.Taker.Wallet.SegwitPublicKey
-			input.Type = "p2sh"
+			input.Type = "p2wpkh"
 		} else {
 			// TODO: all logging
 			return errors.New("Invalid taker wallet type")
@@ -605,11 +605,12 @@ func (p *PSBT) GeneratePSBT(c echo.Context) (*models.PSBT, error) {
 	}
 
 	// Measure gas and adjust the maker/taker change outputs
-	minerFee, err := calculateMinerFeeForPSBT(preMinerFeePSBT.UnsignedTx, float64(p.Trade.FeeRate))
+	minerFee, err := p.calculateMinerFeeForPSBT(preMinerFeePSBT.UnsignedTx, float64(p.Trade.FeeRate))
 	if err != nil {
 		c.Logger().Error(err)
 		return nil, err
 	}
+
 	p.MinerFee = minerFee
 	if err := p.adjustForMinerFee(minerFee); err != nil {
 		c.Logger().Error(err)
@@ -649,12 +650,22 @@ func isValidTxID(txID string) bool {
 	return match
 }
 
-func calculateMinerFeeForPSBT(tx *wire.MsgTx, feeRatePerVByte float64) (int64, error) {
+func (p *PSBT) calculateMinerFeeForPSBT(tx *wire.MsgTx, feeRatePerVByte float64) (int64, error) {
 	baseSize := tx.SerializeSizeStripped()
 	totalSize := tx.SerializeSize()
 
 	weight := baseSize*3 + totalSize
 	virtualSize := int(math.Ceil(float64(weight) / 4.0))
+
+	for _, input := range p.Inputs {
+		if input.Type == "p2tr" {
+			virtualSize = virtualSize + 57
+		}
+		if input.Type == "p2wpkh" {
+			virtualSize = virtualSize + 102
+		}
+	}
+
 	minerFee := float64(virtualSize) * feeRatePerVByte
 
 	return int64(minerFee) + 50, nil

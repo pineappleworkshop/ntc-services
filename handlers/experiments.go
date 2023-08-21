@@ -5,11 +5,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"net/http"
-	"ntc-services/models"
-	"ntc-services/services"
-
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/psbt"
@@ -20,6 +17,10 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/tnakagawa/goref/bech32m"
 	"math"
+	"math/big"
+	"net/http"
+	"ntc-services/models"
+	"ntc-services/services"
 )
 
 /*
@@ -557,6 +558,91 @@ func Broadcast(c echo.Context) error {
 	fmt.Printf("Transaction broadcasted with ID: %s\n", txid)
 
 	return c.JSON(http.StatusOK, txid)
+}
+
+func Keys(c echo.Context) error {
+	wifStr := "Kxy5m9UFWLSfw4fVFwPjePeZKPvpg3UyViLLKP1StJabGc2vJaRk"
+	// Decode WIF
+	wif, err := btcutil.DecodeWIF(wifStr)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("-------------------------------")
+	fmt.Printf("ECDSA: %v", wif.String())
+	fmt.Println("-------------------------------")
+
+	// Ensure it's for the correct network (this is for Bitcoin mainnet)
+	if !wif.IsForNet(&chaincfg.MainNetParams) {
+		panic(err)
+	}
+
+	// Get the private key in hex format
+	privateKeyBytes := wif.PrivKey.Serialize()
+	privateKeyHex := fmt.Sprintf("%x", privateKeyBytes)
+	fmt.Printf("Private Key (Hex): %s\n", privateKeyHex)
+
+	// Get the associated compressed public key
+	pubKeyCompressed := wif.PrivKey.PubKey().SerializeCompressed()
+
+	fmt.Printf("Compressed Public Key (Hex): %x\n", pubKeyCompressed)
+
+	//key, err := WIFToPrivateKey(wif)
+	//if err != nil {
+	//	fmt.Println("Error:", err)
+	//}
+	//fmt.Println("Hex Private Key:", key)
+	//
+	//privateKeyHex := "7dd4655fbb6a8e658216f6b9fd4a6bf13a683f34d334edc2dfe02b31576e1c8b"
+	//privateKeyBytes, err := hex.DecodeString(privateKeyHex)
+	//if err != nil {
+	//	//log.Fatal(err)
+	//}
+
+	privateKey, publicKey := btcec.PrivKeyFromBytes(privateKeyBytes)
+
+	fmt.Println("Private Key (Hex):", hex.EncodeToString(privateKey.Serialize()))
+	fmt.Println("Public Key (Hex - uncompressed):", hex.EncodeToString(publicKey.SerializeUncompressed()))
+	fmt.Println("Public Key (Hex - compressed):", hex.EncodeToString(publicKey.SerializeCompressed()))
+
+	return c.JSON(http.StatusOK, "OK")
+}
+
+const alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+
+func Base58Decode(input string) ([]byte, error) {
+	bigIntVal := new(big.Int).SetInt64(0)
+	for _, r := range input {
+		index := bytes.IndexByte([]byte(alphabet), byte(r))
+		if index == -1 {
+			return nil, errors.New("invalid character found")
+		}
+		bigIntVal.Mul(bigIntVal, new(big.Int).SetInt64(58))
+		bigIntVal.Add(bigIntVal, new(big.Int).SetInt64(int64(index)))
+	}
+	bytesVal := bigIntVal.Bytes()
+	// Restore leading zeros. They were lost when using big.Int.Bytes()
+	for i := 0; i < len(input) && input[i] == alphabet[0]; i++ {
+		bytesVal = append([]byte{0x00}, bytesVal...)
+	}
+	return bytesVal, nil
+}
+
+func WIFToPrivateKey(wif string) (string, error) {
+	data, err := Base58Decode(wif)
+	if err != nil {
+		return "", err
+	}
+	if len(data) != 1+32+4 { // 1 byte for version, 32 bytes for key, 4 bytes for checksum
+		return "", errors.New("invalid WIF length")
+	}
+	// Verify checksum
+	checksum := sha256.Sum256(data[:1+32])
+	checksum = sha256.Sum256(checksum[:])
+	if !bytes.Equal(checksum[:4], data[1+32:]) {
+		return "", errors.New("invalid WIF checksum")
+	}
+	return hex.EncodeToString(data[1 : 1+32]), nil
 }
 
 // SignMethod defines the different ways a signer can sign, given a specific
