@@ -6,9 +6,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/btcsuite/btcd/btcutil/psbt"
+	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"net/http/httptest"
 	"ntc-services/models"
+	"strings"
 	"testing"
 	"time"
 )
@@ -163,6 +166,10 @@ var trade = &models.Trade{
 
 func TestPBST(t *testing.T) {
 	var err error
+	e := echo.New()
+	echoReq := httptest.NewRequest(echo.GET, "/", strings.NewReader(""))
+	echoRec := httptest.NewRecorder()
+	c := e.NewContext(echoReq, echoRec)
 
 	fmt.Println("++++++++++++++++++++++++++++")
 	fmt.Printf("Trade: %+v \n", trade)
@@ -178,7 +185,7 @@ func TestPBST(t *testing.T) {
 	assert.Len(t, p.MakerInscriptionsAll, 1)
 	assert.Len(t, p.TakerInscriptionsAll, 0)
 
-	err = p.selectInscriptionsUTXOs()
+	err = p.selectInscriptionsUTXOs(c)
 	assert.Nil(t, err)
 	assert.Len(t, p.MakerInscriptionUTXOs, 1)
 	assert.Len(t, p.MakerPaymentUTXOs, 0)
@@ -226,7 +233,7 @@ func TestPBST(t *testing.T) {
 	assert.Len(t, pCreate.MakerInscriptionsAll, 1)
 	assert.Len(t, pCreate.TakerInscriptionsAll, 0)
 
-	err = pCreate.Create()
+	err = pCreate.Create(c)
 	assert.Nil(t, err)
 	assert.Equal(t, p, pCreate)
 
@@ -253,4 +260,18 @@ func TestPBST(t *testing.T) {
 	//}
 	fee, _ := calculateMinerFeeForPSBT(pack.UnsignedTx, 12)
 	fmt.Println(fee)
+
+	pCreate.MinerFee = fee
+	err = pCreate.adjustForMinerFee(fee)
+
+	req = pCreate.ToReq()
+	assert.NotNil(t, req)
+	assert.Equal(t, req.Inputs, pCreate.Inputs)
+	assert.Equal(t, req.Outputs, pCreate.Outputs)
+
+	reqJSON, err = json.MarshalIndent(req, "", "  ")
+	assert.Nil(t, err)
+	fmt.Println("|||||||||||||||||||||||")
+	fmt.Printf("%+v \n", string(reqJSON))
+	fmt.Println("|||||||||||||||||||||||")
 }

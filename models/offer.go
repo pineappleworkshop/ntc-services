@@ -23,6 +23,7 @@ type Offer struct {
 	TradeID         primitive.ObjectID `json:"trade_id" bson:"trade_id"`
 	MakerID         primitive.ObjectID `json:"maker_id" bson:"maker_id"`
 	Maker           *Side              `json:"maker" bson:"maker"`
+	PSBT            *PSBT              `json:"psbt" bson:"psbt"`
 	Status          string             `json:"status" bson:"status"`
 	StatusChangedAt *int64             `json:"status_changed_at" bson:"status_changed_at"`
 	CreatedAt       int64              `json:"created_at" bson:"created_at"`
@@ -33,6 +34,7 @@ func NewOffer(tradeID primitive.ObjectID) *Offer {
 	return &Offer{
 		ID:        primitive.NewObjectID(),
 		TradeID:   tradeID,
+		Status:    "OPEN",
 		CreatedAt: time.Now().Unix(),
 	}
 }
@@ -67,7 +69,6 @@ func GetOffersByTradeID(c echo.Context) ([]*Offer, error) {
 		return nil, err
 	}
 	filter := bson.M{"trade_id": idHex}
-
 	collection := stores.DB.Mongo.Client.Database(stores.DB_NAME).Collection(stores.DB_COLLECTION_OFFERS)
 
 	cursor, err := collection.Find(context.TODO(), filter)

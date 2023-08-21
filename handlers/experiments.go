@@ -5,11 +5,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"net/http"
-	"ntc-services/models"
-	"ntc-services/services"
-
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcutil"
 	"github.com/btcsuite/btcd/btcutil/psbt"
@@ -20,6 +17,10 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/tnakagawa/goref/bech32m"
 	"math"
+	"math/big"
+	"net/http"
+	"ntc-services/models"
+	"ntc-services/services"
 )
 
 /*
@@ -510,6 +511,138 @@ func UTXOs(c echo.Context) error {
 	fmt.Println("=====================")
 
 	return c.JSON(http.StatusOK, nil)
+}
+
+func Broadcast(c echo.Context) error {
+	//txHex := "020000000382898dcd771fc4ea01214fe7a48842aa124680d448dc3574456a0b632d2028560000000000ffffffff97fe1129765f9b96fdd748cf5814e99b341d7b5585d4f3cddb5e78ea7ed659220100000000ffffffff1a8fe558a262d752f05218d26f1d3d6ffafbe7981797a18341f418a45e5d1b380000000000ffffffff062202000000000000225120310e886d1ca084c79172f77350a260b61aee83b0f1b78ac058479e203a12a8cd92240100000000002251207aeaf0a064e5ae738eee3552912d47c4b7734c3ba6a1189d4c2114a166d47076f40100000000000017a9147265c2aec1412779e4d515ffab06f3303be70eef87a0860100000000002251207aeaf0a064e5ae738eee3552912d47c4b7734c3ba6a1189d4c2114a166d470768d02030000000000225120310e886d1ca084c79172f77350a260b61aee83b0f1b78ac058479e203a12a8cdf40100000000000017a9147265c2aec1412779e4d515ffab06f3303be70eef8700000000"
+	txHex := "020000000382898dcd771fc4ea01214fe7a48842aa124680d448dc3574456a0b632d2028560000000000ffffffff97fe1129765f9b96fdd748cf5814e99b341d7b5585d4f3cddb5e78ea7ed659220100000000ffffffff1a8fe558a262d752f05218d26f1d3d6ffafbe7981797a18341f418a45e5d1b380000000000ffffffff062202000000000000225120310e886d1ca084c79172f77350a260b61aee83b0f1b78ac058479e203a12a8cdce1e0100000000002251207aeaf0a064e5ae738eee3552912d47c4b7734c3ba6a1189d4c2114a166d47076580200000000000017a9147265c2aec1412779e4d515ffab06f3303be70eef87a0860100000000002251207aeaf0a064e5ae738eee3552912d47c4b7734c3ba6a1189d4c2114a166d47076c9fc020000000000225120310e886d1ca084c79172f77350a260b61aee83b0f1b78ac058479e203a12a8cd580200000000000017a9147265c2aec1412779e4d515ffab06f3303be70eef8700000000"
+
+	// Decode the hex-encoded transaction
+	rawTxBytes, err := hex.DecodeString(txHex)
+	if err != nil {
+		c.Logger().Error(err)
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+	var msgTx wire.MsgTx
+	if err := msgTx.Deserialize(bytes.NewReader(rawTxBytes)); err != nil {
+		c.Logger().Error(err)
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	btcClient := services.NewBitcoinClient()
+	txid, err := btcClient.SendRawTransaction(&msgTx, false)
+	if err != nil {
+		c.Logger().Error(err)
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
+
+	//url := "https://blockstream.info/api/tx"
+	//resp, err := http.Post(url, "text/plain", bytes.NewBufferString(txHex))
+	//if err != nil {
+	//	c.Logger().Error(err)
+	//	return c.JSON(http.StatusBadRequest, err.Error())
+	//}
+	//defer resp.Body.Close()
+	//
+	//body, err := ioutil.ReadAll(resp.Body)
+	//if err != nil {
+	//	c.Logger().Error(err)
+	//	return c.JSON(http.StatusBadRequest, err.Error())
+	//}
+	//
+	//if resp.StatusCode != http.StatusOK {
+	//	c.Logger().Error(err)
+	//	return c.JSON(http.StatusBadRequest, err.Error())
+	//}
+
+	fmt.Printf("Transaction broadcasted with ID: %s\n", txid)
+
+	return c.JSON(http.StatusOK, txid)
+}
+
+func Keys(c echo.Context) error {
+	wifStr := "Kxy5m9UFWLSfw4fVFwPjePeZKPvpg3UyViLLKP1StJabGc2vJaRk"
+	// Decode WIF
+	wif, err := btcutil.DecodeWIF(wifStr)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("-------------------------------")
+	fmt.Printf("ECDSA: %v", wif.String())
+	fmt.Println("-------------------------------")
+
+	// Ensure it's for the correct network (this is for Bitcoin mainnet)
+	if !wif.IsForNet(&chaincfg.MainNetParams) {
+		panic(err)
+	}
+
+	// Get the private key in hex format
+	privateKeyBytes := wif.PrivKey.Serialize()
+	privateKeyHex := fmt.Sprintf("%x", privateKeyBytes)
+	fmt.Printf("Private Key (Hex): %s\n", privateKeyHex)
+
+	// Get the associated compressed public key
+	pubKeyCompressed := wif.PrivKey.PubKey().SerializeCompressed()
+
+	fmt.Printf("Compressed Public Key (Hex): %x\n", pubKeyCompressed)
+
+	//key, err := WIFToPrivateKey(wif)
+	//if err != nil {
+	//	fmt.Println("Error:", err)
+	//}
+	//fmt.Println("Hex Private Key:", key)
+	//
+	//privateKeyHex := "7dd4655fbb6a8e658216f6b9fd4a6bf13a683f34d334edc2dfe02b31576e1c8b"
+	//privateKeyBytes, err := hex.DecodeString(privateKeyHex)
+	//if err != nil {
+	//	//log.Fatal(err)
+	//}
+
+	privateKey, publicKey := btcec.PrivKeyFromBytes(privateKeyBytes)
+
+	fmt.Println("Private Key (Hex):", hex.EncodeToString(privateKey.Serialize()))
+	fmt.Println("Public Key (Hex - uncompressed):", hex.EncodeToString(publicKey.SerializeUncompressed()))
+	fmt.Println("Public Key (Hex - compressed):", hex.EncodeToString(publicKey.SerializeCompressed()))
+
+	return c.JSON(http.StatusOK, "OK")
+}
+
+const alphabet = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz"
+
+func Base58Decode(input string) ([]byte, error) {
+	bigIntVal := new(big.Int).SetInt64(0)
+	for _, r := range input {
+		index := bytes.IndexByte([]byte(alphabet), byte(r))
+		if index == -1 {
+			return nil, errors.New("invalid character found")
+		}
+		bigIntVal.Mul(bigIntVal, new(big.Int).SetInt64(58))
+		bigIntVal.Add(bigIntVal, new(big.Int).SetInt64(int64(index)))
+	}
+	bytesVal := bigIntVal.Bytes()
+	// Restore leading zeros. They were lost when using big.Int.Bytes()
+	for i := 0; i < len(input) && input[i] == alphabet[0]; i++ {
+		bytesVal = append([]byte{0x00}, bytesVal...)
+	}
+	return bytesVal, nil
+}
+
+func WIFToPrivateKey(wif string) (string, error) {
+	data, err := Base58Decode(wif)
+	if err != nil {
+		return "", err
+	}
+	if len(data) != 1+32+4 { // 1 byte for version, 32 bytes for key, 4 bytes for checksum
+		return "", errors.New("invalid WIF length")
+	}
+	// Verify checksum
+	checksum := sha256.Sum256(data[:1+32])
+	checksum = sha256.Sum256(checksum[:])
+	if !bytes.Equal(checksum[:4], data[1+32:]) {
+		return "", errors.New("invalid WIF checksum")
+	}
+	return hex.EncodeToString(data[1 : 1+32]), nil
 }
 
 // SignMethod defines the different ways a signer can sign, given a specific

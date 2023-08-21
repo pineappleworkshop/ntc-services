@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"crypto/sha256"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -58,6 +59,14 @@ func parsePagination(c echo.Context) (int64, int64, error) {
 func validateBTCAddress(address string) bool {
 	_, err := btcutil.DecodeAddress(address, &chaincfg.MainNetParams)
 	return err == nil
+}
+
+func formatJSON(data interface{}) (string, error) {
+	prettyJSON, err := json.MarshalIndent(data, "", "    ")
+	if err != nil {
+		return "", err
+	}
+	return string(prettyJSON), nil
 }
 
 //func extractTapRootAddrFromPubKey(pkScript []byte) (string, error) {
