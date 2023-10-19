@@ -561,31 +561,30 @@ func Broadcast(c echo.Context) error {
 }
 
 func Keys(c echo.Context) error {
-	wifStr := "Kxy5m9UFWLSfw4fVFwPjePeZKPvpg3UyViLLKP1StJabGc2vJaRk"
-	// Decode WIF
-	wif, err := btcutil.DecodeWIF(wifStr)
-	if err != nil {
-		panic(err)
+	//wifStr := ""
+
+	wifStrs := []string{}
+
+	for _, wifStr := range wifStrs {
+		// Decode WIF
+		wif, err := btcutil.DecodeWIF(wifStr)
+		if err != nil {
+			panic(err)
+		}
+
+		// Ensure it's for the correct network (this is for Bitcoin mainnet)
+		if !wif.IsForNet(&chaincfg.MainNetParams) {
+			panic(err)
+		}
+
+		// Get the private key in hex format
+		privateKeyBytes := wif.PrivKey.Serialize()
+		privateKeyHex := fmt.Sprintf("%x", privateKeyBytes)
+		fmt.Printf("Private Key (Hex): %s\n", privateKeyHex)
+		// Get the associated compressed public key
+		pubKeyCompressed := wif.PrivKey.PubKey().SerializeCompressed()
+		fmt.Printf("Compressed Public Key (Hex): %x\n", pubKeyCompressed)
 	}
-
-	fmt.Println("-------------------------------")
-	fmt.Printf("ECDSA: %v", wif.String())
-	fmt.Println("-------------------------------")
-
-	// Ensure it's for the correct network (this is for Bitcoin mainnet)
-	if !wif.IsForNet(&chaincfg.MainNetParams) {
-		panic(err)
-	}
-
-	// Get the private key in hex format
-	privateKeyBytes := wif.PrivKey.Serialize()
-	privateKeyHex := fmt.Sprintf("%x", privateKeyBytes)
-	fmt.Printf("Private Key (Hex): %s\n", privateKeyHex)
-
-	// Get the associated compressed public key
-	pubKeyCompressed := wif.PrivKey.PubKey().SerializeCompressed()
-
-	fmt.Printf("Compressed Public Key (Hex): %x\n", pubKeyCompressed)
 
 	//key, err := WIFToPrivateKey(wif)
 	//if err != nil {
@@ -593,17 +592,17 @@ func Keys(c echo.Context) error {
 	//}
 	//fmt.Println("Hex Private Key:", key)
 	//
-	//privateKeyHex := "7dd4655fbb6a8e658216f6b9fd4a6bf13a683f34d334edc2dfe02b31576e1c8b"
+	//privateKeyHex := ""
 	//privateKeyBytes, err := hex.DecodeString(privateKeyHex)
 	//if err != nil {
 	//	//log.Fatal(err)
 	//}
 
-	privateKey, publicKey := btcec.PrivKeyFromBytes(privateKeyBytes)
-
-	fmt.Println("Private Key (Hex):", hex.EncodeToString(privateKey.Serialize()))
-	fmt.Println("Public Key (Hex - uncompressed):", hex.EncodeToString(publicKey.SerializeUncompressed()))
-	fmt.Println("Public Key (Hex - compressed):", hex.EncodeToString(publicKey.SerializeCompressed()))
+	//privateKey, publicKey := btcec.PrivKeyFromBytes(privateKeyBytes)
+	//
+	//fmt.Println("Private Key (Hex):", hex.EncodeToString(privateKey.Serialize()))
+	//fmt.Println("Public Key (Hex - uncompressed):", hex.EncodeToString(publicKey.SerializeUncompressed()))
+	//fmt.Println("Public Key (Hex - compressed):", hex.EncodeToString(publicKey.SerializeCompressed()))
 
 	return c.JSON(http.StatusOK, "OK")
 }

@@ -161,12 +161,11 @@ func PostOfferByTradeID(c echo.Context) error {
 	trade.Taker = maker
 	trade.Taker.Inscriptions = maker.Inscriptions
 
-	fmt.Println("**************************")
-	fmt.Printf("allTradeMakerUTXOs: %+v \n", trade.Maker.Wallet.UTXOs)
-	fmt.Printf("allOfferMakerUTXOs: %+v \n", maker.Wallet.UTXOs)
-	fmt.Printf("allTradeMakerInscriptions: %+v \n", trade.Maker.Wallet.Inscriptions)
-	fmt.Printf("allOfferMakerInscriptions: %+v \n", maker.Wallet.Inscriptions)
-	fmt.Println("**************************")
+	fmt.Println("=====================")
+	fmt.Printf("Trade: %+v \n", trade)
+	fmt.Printf("Maker: %+v \n", trade.Maker)
+	fmt.Printf("Maker Wallet: %+v \n", trade.Maker.Wallet)
+	fmt.Println("=====================")
 
 	// Create PSBT
 	psbtService := services.NewPBST(
@@ -286,7 +285,17 @@ func GetOffersByTradeID(c echo.Context) error {
 */
 
 func PostAcceptOfferByTradeID(c echo.Context) error {
-	// TODO: find & verify wallet
+	// Find & verify wallet
+	//wallet, err := models.GetWalletByID(tradeReqBody.WalletID)
+	//if err != nil {
+	//	if err.Error() == stores.MONGO_ERR_NOT_FOUND {
+	//		c.Logger().Error(err)
+	//		return c.JSON(http.StatusNotFound, err.Error())
+	//	}
+	//	c.Logger().Error(err)
+	//	return c.JSON(http.StatusInternalServerError, err.Error())
+	//}
+
 	// TODO: find & verify trade is in correct status
 	// TODO: find & verify offer is in correct status
 

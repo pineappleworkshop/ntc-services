@@ -73,22 +73,22 @@ func (p *PSBT) Create(c echo.Context) error {
 	if err := p.selectInscriptionsUTXOs(c); err != nil {
 		return err
 	}
-	if err := p.calculatePlatformFee(); err != nil {
+	if err := p.calculatePlatformFee(c); err != nil {
 		return err
 	}
-	if err := p.selectPaymentUTXOs(); err != nil {
+	if err := p.selectPaymentUTXOs(c); err != nil {
 		return err
 	}
-	if err := p.createInscriptionInputs(); err != nil {
+	if err := p.createInscriptionInputs(c); err != nil {
 		return err
 	}
-	if err := p.createInscriptionOutputs(); err != nil {
+	if err := p.createInscriptionOutputs(c); err != nil {
 		return err
 	}
-	if err := p.createPaymentInputs(); err != nil {
+	if err := p.createPaymentInputs(c); err != nil {
 		return err
 	}
-	if err := p.createPaymentsOutputs(); err != nil {
+	if err := p.createPaymentsOutputs(c); err != nil {
 		return err
 	}
 
@@ -248,7 +248,7 @@ func (p *PSBT) selectInscriptionsUTXOs(c echo.Context) error {
 }
 
 // TODO: revisit and handle beta testing with minimal fees
-func (p *PSBT) calculatePlatformFee() error {
+func (p *PSBT) calculatePlatformFee(c echo.Context) error {
 	// Calculate total fees and split between parties
 	totalPayments := p.Trade.Maker.BTC + p.Trade.Taker.BTC
 
@@ -274,7 +274,7 @@ func (p *PSBT) calculatePlatformFee() error {
 	return nil
 }
 
-func (p *PSBT) selectPaymentUTXOs() error {
+func (p *PSBT) selectPaymentUTXOs(c echo.Context) error {
 	// MAKER: Select the payment UTXOs for the psbt
 	// Calculate total payment and set control vars
 	p.MakerPayment = p.Trade.Maker.BTC + p.PlatformFee/2
@@ -345,9 +345,15 @@ func (p *PSBT) selectPaymentUTXOs() error {
 //	} `json:"witness_utxo"`
 //}
 
-func (p *PSBT) createInscriptionInputs() error {
+func (p *PSBT) createInscriptionInputs(c echo.Context) error {
 	// MAKER: Create the inscription Inputs
 	// Iterate through the maker inscriptions and create the proper outputs
+
+	fmt.Println("===============================")
+	fmt.Printf("Maker Inscriptions: %+v \n", *p.MakerInscriptionUTXOs[0])
+	fmt.Printf("Taker Inscriptions: %+v \n", *p.TakerInscriptionUTXOs[0])
+	fmt.Println("===============================")
+
 	for i, utxo := range p.MakerInscriptionUTXOs {
 		// Create input
 		input := new(models.Input)
@@ -385,13 +391,13 @@ func (p *PSBT) createInscriptionInputs() error {
 		input.WitnessUTXO.Script = utxo.Script
 
 		// Append to psbt inputs
-		p.Inputs[i] = input
+		p.Inputs[i+len(p.Inputs)] = input
 	}
 
 	return nil
 }
 
-func (p *PSBT) createInscriptionOutputs() error {
+func (p *PSBT) createInscriptionOutputs(c echo.Context) error {
 	// MAKER: Create the inscription outputs
 	// Iterate through the maker inscriptions UTXOs and create outputs to the recipient
 	for i, utxo := range p.MakerInscriptionUTXOs {
@@ -415,7 +421,7 @@ func (p *PSBT) createInscriptionOutputs() error {
 		output.IsInscription = true
 
 		// append to outputs
-		p.Outputs[i] = output
+		p.Outputs[i+len(p.Outputs)] = output
 	}
 
 	return nil
@@ -433,7 +439,7 @@ func (p *PSBT) createInscriptionOutputs() error {
 //	} `json:"witness_utxo"`
 //}
 
-func (p *PSBT) createPaymentInputs() error {
+func (p *PSBT) createPaymentInputs(c echo.Context) error {
 	// MAKER: Create the inscription Inputs
 	// Iterate through maker payment utxos and create input
 	for i, utxo := range p.MakerPaymentUTXOs {
@@ -448,8 +454,9 @@ func (p *PSBT) createPaymentInputs() error {
 			input.PublicKey = p.Trade.Maker.Wallet.SegwitPublicKey
 			input.Type = "p2wpkh"
 		} else {
-			// TODO: all logging
-			return errors.New("Invalid maker wallet type")
+			err := errors.New("Invalid maker wallet type")
+			c.Logger().Error(err)
+			return err
 		}
 		input.TxID = utxo.TxHashBigEndian
 		input.Index = utxo.TxOutputN
@@ -474,8 +481,9 @@ func (p *PSBT) createPaymentInputs() error {
 			input.PublicKey = p.Trade.Taker.Wallet.SegwitPublicKey
 			input.Type = "p2wpkh"
 		} else {
-			// TODO: all logging
-			return errors.New("Invalid taker wallet type")
+			err := errors.New("Invalid taker wallet type")
+			c.Logger().Error(err)
+			return err
 		}
 		input.TxID = utxo.TxHashBigEndian
 		input.Index = utxo.TxOutputN
@@ -494,7 +502,7 @@ func (p *PSBT) createPaymentInputs() error {
 //	Value              int64  `json:"value"`
 //}
 
-func (p *PSBT) createPaymentsOutputs() error {
+func (p *PSBT) createPaymentsOutputs(c echo.Context) error {
 	// MAKER: Create the payments outputs
 	// Create output for payment from maker to taker
 	if p.Trade.Maker.BTC >= 546 {
@@ -504,8 +512,9 @@ func (p *PSBT) createPaymentsOutputs() error {
 		} else if p.Trade.Taker.Wallet.Type == "xverse" || p.Trade.Taker.Wallet.Type == "hiro" {
 			makerPaymentOutput.Addr = p.Trade.Taker.Wallet.SegwitAddr
 		} else {
-			// TODO: all logging
-			return errors.New("Invalid taker wallet type")
+			err := errors.New("Invalid taker wallet type")
+			c.Logger().Error(err)
+			return err
 		}
 		makerPaymentOutput.Value = p.Trade.Maker.BTC
 		makerPaymentOutput.IsPayment = true
@@ -515,11 +524,12 @@ func (p *PSBT) createPaymentsOutputs() error {
 	makerChangeOutput := new(models.Output)
 	if p.Trade.Maker.Wallet.Type == "unisat" {
 		makerChangeOutput.Addr = p.Trade.Maker.Wallet.TapRootAddr
-	} else if p.Trade.Taker.Wallet.Type == "xverse" || p.Trade.Taker.Wallet.Type == "hiro" {
+	} else if p.Trade.Maker.Wallet.Type == "xverse" || p.Trade.Maker.Wallet.Type == "hiro" {
 		makerChangeOutput.Addr = p.Trade.Maker.Wallet.SegwitAddr
 	} else {
-		// TODO: all logging
-		return errors.New("Invalid maker wallet type")
+		err := errors.New("Invalid maker wallet type")
+		c.Logger().Error(err)
+		return err
 	}
 	makerChangeOutput.Value = p.MakerChange
 	makerChangeOutput.IsChange = true
@@ -538,13 +548,14 @@ func (p *PSBT) createPaymentsOutputs() error {
 	// Create output for payment from taker to maker
 	if p.Trade.Taker.BTC >= 546 {
 		takerPaymentOutput := new(models.Output)
-		if p.Trade.Maker.Wallet.Type == "unisat" {
+		if p.Trade.Taker.Wallet.Type == "unisat" {
 			takerPaymentOutput.Addr = p.Trade.Maker.Wallet.TapRootAddr
 		} else if p.Trade.Taker.Wallet.Type == "xverse" || p.Trade.Taker.Wallet.Type == "hiro" {
 			takerPaymentOutput.Addr = p.Trade.Maker.Wallet.SegwitAddr
 		} else {
-			// TODO: all logging
-			return errors.New("Invalid taker wallet type")
+			err := errors.New("Invalid taker wallet type")
+			c.Logger().Error(err)
+			return err
 		}
 		takerPaymentOutput.Value = p.Trade.Taker.BTC
 		takerPaymentOutput.IsPayment = true
@@ -557,8 +568,9 @@ func (p *PSBT) createPaymentsOutputs() error {
 	} else if p.Trade.Taker.Wallet.Type == "xverse" || p.Trade.Taker.Wallet.Type == "hiro" {
 		takerChangeOutput.Addr = p.Trade.Taker.Wallet.SegwitAddr
 	} else {
-		// TODO: all logging
-		return errors.New("Invalid maker wallet type")
+		err := errors.New("Invalid maker wallet type")
+		c.Logger().Error(err)
+		return err
 	}
 	takerChangeOutput.Value = p.TakerChange
 	takerChangeOutput.IsChange = true

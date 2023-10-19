@@ -28,7 +28,7 @@ package services
 //	psbtBase64 = "cHNidP8BAFIBAAAAAX7Mj1abZbFtfUYFYBIFRKxCOxs8wfMRu3NhVBHTbnFfAQAAAAAAAAAAAayEAQAAAAAAFgAU8yFPpRndMpAJ7aO+RtRN4Nh3mbYAAAAAAAEBH6CGAQAAAAAAFgAUJw/E3xSMUU+8VVGHXk7Dc4vGNjkiBgOoVLKI2rj2DMlswSDkSf0KR7jQHULLPOWS/x3q8b3MqQyj8e/WAAAAAAMAAAAAAA=="
 //
 //	// Extended Private Key.
-//	extPrivateKeyStr = "vprv9GpFMh8VMAXKgdZVFGXFvsexjr25MHKvtCY7vKHbRr8A6xCm4bQYbQrJmLz6h3F9MGf5edwxQuZR7DCLFVvjMxgfJ9so9mcN2SHGR3QFr3S"
+//	extPrivateKeyStr = ""
 //)
 //
 //// Part 1: Creating the PSBT (will be returned as base64)

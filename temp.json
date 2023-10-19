@@ -1,0 +1,393 @@
+{
+  "id": "64e54e379e35934aa0d8659c",
+  "trade_id": "64e3d5f74bcde00b3f12dcb9",
+  "maker_id": "64e54e369e35934aa0d8659a",
+  "maker": {
+    "id": "64e54e369e35934aa0d8659a",
+    "wallet_id": "64dfff787a00d24ac06fd2a3",
+    "wallet": {
+      "id": "64dfff787a00d24ac06fd2a3",
+      "wallet_type": "unisat",
+      "tap_root_addr": "bc1p0t40pgryukh88rhwx4ffzt28cjmhxnpm56s3382vyy22zek5wpmq8rps2l",
+      "tap_root_public_key": "0223dfdbe72c5ee9e687946e9c17f68589d90552e37a6435da7c05c2f1fba21f15",
+      "segwit_addr": "",
+      "segwit_public_key": "",
+      "last_connected_at": null,
+      "last_connected_block": null,
+      "created_at": 1692401528,
+      "updated_at": null,
+      "inscriptions": [
+        {
+          "inscription_name": null,
+          "inscription_id": "8fe4e7e475b96a04fcd321f0dfa3168d092921af6b4d618fb3126bb37a5260b2i0",
+          "inscription_number": 2980619,
+          "metadata": null,
+          "owner_wallet_addr": "bc1p0t40pgryukh88rhwx4ffzt28cjmhxnpm56s3382vyy22zek5wpmq8rps2l",
+          "mime_type": "image/png",
+          "last_sale_price": null,
+          "slug": null,
+          "collection_name": null,
+          "satpoint": "ece31c3af0e284209a8e14d394c4b455de0344631fa9b9f384739f22302bb9ed:0:0",
+          "last_transfer_block_height": 800674,
+          "content_url": "https://bis-ord-content.fra1.cdn.digitaloceanspaces.com/ordinals/8fe4e7e475b96a04fcd321f0dfa3168d092921af6b4d618fb3126bb37a5260b2i0",
+          "bis_url": "https://bestinslot.xyz/ordinals/inscription/8fe4e7e475b96a04fcd321f0dfa3168d092921af6b4d618fb3126bb37a5260b2i0"
+        },
+        {
+          "inscription_name": "OrdiToadz #3567",
+          "inscription_id": "0426fa6d4e15354d73761d5a0bf02151bd32a5ebbfa5408a1c98ba1370dea943i0",
+          "inscription_number": 7952123,
+          "metadata": null,
+          "owner_wallet_addr": "bc1p0t40pgryukh88rhwx4ffzt28cjmhxnpm56s3382vyy22zek5wpmq8rps2l",
+          "mime_type": "image/png",
+          "last_sale_price": null,
+          "slug": "orditoadz",
+          "collection_name": "OrdiToadz",
+          "satpoint": "1e6443192a9df8c0483cae22e2690505d1d770825fedb9fc8f2aad2c427db79f:0:0",
+          "last_transfer_block_height": 800545,
+          "content_url": "https://bis-ord-content.fra1.cdn.digitaloceanspaces.com/ordinals/0426fa6d4e15354d73761d5a0bf02151bd32a5ebbfa5408a1c98ba1370dea943i0",
+          "bis_url": "https://bestinslot.xyz/ordinals/inscription/0426fa6d4e15354d73761d5a0bf02151bd32a5ebbfa5408a1c98ba1370dea943i0"
+        },
+        {
+          "inscription_name": null,
+          "inscription_id": "79b1e340e10cbdf3e8d5dd1336c74b2f847f76d92fea5daefce9a949c1a2a714i0",
+          "inscription_number": 11386905,
+          "metadata": null,
+          "owner_wallet_addr": "bc1p0t40pgryukh88rhwx4ffzt28cjmhxnpm56s3382vyy22zek5wpmq8rps2l",
+          "mime_type": "text/plain;charset=utf-8",
+          "last_sale_price": null,
+          "slug": null,
+          "collection_name": null,
+          "satpoint": "455e7f37fee4733eb2b4d80f77fe1234f5f4785056932b670b0ef72883668650:1:0",
+          "last_transfer_block_height": 799444,
+          "content_url": "https://bis-ord-content.fra1.cdn.digitaloceanspaces.com/ordinals/79b1e340e10cbdf3e8d5dd1336c74b2f847f76d92fea5daefce9a949c1a2a714i0",
+          "bis_url": "https://bestinslot.xyz/ordinals/inscription/79b1e340e10cbdf3e8d5dd1336c74b2f847f76d92fea5daefce9a949c1a2a714i0"
+        },
+        {
+          "inscription_name": null,
+          "inscription_id": "7575253bb23c85cddb7c50b4fd468d56bfbea404669f205058fe289132756244i0",
+          "inscription_number": 18215936,
+          "metadata": null,
+          "owner_wallet_addr": "bc1p0t40pgryukh88rhwx4ffzt28cjmhxnpm56s3382vyy22zek5wpmq8rps2l",
+          "mime_type": "text/plain;charset=utf-8",
+          "last_sale_price": null,
+          "slug": null,
+          "collection_name": null,
+          "satpoint": "415ea79ab14b4cdeae7c347cf28f0ed3cf4789694216f0d821314de300cc0ffb:4:0",
+          "last_transfer_block_height": 799542,
+          "content_url": "https://bis-ord-content.fra1.cdn.digitaloceanspaces.com/ordinals/7575253bb23c85cddb7c50b4fd468d56bfbea404669f205058fe289132756244i0",
+          "bis_url": "https://bestinslot.xyz/ordinals/inscription/7575253bb23c85cddb7c50b4fd468d56bfbea404669f205058fe289132756244i0"
+        },
+        {
+          "inscription_name": null,
+          "inscription_id": "05046e422813ad3cd273909f0054f86de49c24bcb8b968a71e1fed73297e7055i0",
+          "inscription_number": 18439156,
+          "metadata": null,
+          "owner_wallet_addr": "bc1p0t40pgryukh88rhwx4ffzt28cjmhxnpm56s3382vyy22zek5wpmq8rps2l",
+          "mime_type": "image/png",
+          "last_sale_price": null,
+          "slug": null,
+          "collection_name": null,
+          "satpoint": "b00cd904d05432817582c8d2f2c5c9ef36d8dd315bf4aaf993b20158cf7236d6:0:0",
+          "last_transfer_block_height": 804264,
+          "content_url": "https://bis-ord-content.fra1.cdn.digitaloceanspaces.com/ordinals/05046e422813ad3cd273909f0054f86de49c24bcb8b968a71e1fed73297e7055i0",
+          "bis_url": "https://bestinslot.xyz/ordinals/inscription/05046e422813ad3cd273909f0054f86de49c24bcb8b968a71e1fed73297e7055i0"
+        },
+        {
+          "inscription_name": null,
+          "inscription_id": "05046e422813ad3cd273909f0054f86de49c24bcb8b968a71e1fed73297e7055i0",
+          "inscription_number": 18439156,
+          "metadata": null,
+          "owner_wallet_addr": "bc1p0t40pgryukh88rhwx4ffzt28cjmhxnpm56s3382vyy22zek5wpmq8rps2l",
+          "mime_type": "image/png",
+          "last_sale_price": null,
+          "slug": null,
+          "collection_name": null,
+          "satpoint": "b00cd904d05432817582c8d2f2c5c9ef36d8dd315bf4aaf993b20158cf7236d6:0:0",
+          "last_transfer_block_height": 804264,
+          "content_url": "https://bis-ord-content.fra1.cdn.digitaloceanspaces.com/ordinals/05046e422813ad3cd273909f0054f86de49c24bcb8b968a71e1fed73297e7055i0",
+          "bis_url": "https://bestinslot.xyz/ordinals/inscription/05046e422813ad3cd273909f0054f86de49c24bcb8b968a71e1fed73297e7055i0"
+        }
+      ],
+      "utxos": [
+        {
+          "tx_hash_big_endian": "ec6cc6d52419d5914ecf80f860f532a3cbb6940a3aa1f89730514266527422d6",
+          "tx_hash": "d62274526642513097f8a13a0a94b6cba332f560f880cf4e91d51924d5c66cec",
+          "tx_output_n": 1,
+          "script": "51207aeaf0a064e5ae738eee3552912d47c4b7734c3ba6a1189d4c2114a166d47076",
+          "value": 71133,
+          "value_hex": "0115dd",
+          "confirmations": 296,
+          "tx_index": 7534191001258058,
+          "is_inscription": false,
+          "inscription_num": null
+        },
+        {
+          "tx_hash_big_endian": "ec6cc6d52419d5914ecf80f860f532a3cbb6940a3aa1f89730514266527422d6",
+          "tx_hash": "d62274526642513097f8a13a0a94b6cba332f560f880cf4e91d51924d5c66cec",
+          "tx_output_n": 3,
+          "script": "51207aeaf0a064e5ae738eee3552912d47c4b7734c3ba6a1189d4c2114a166d47076",
+          "value": 10000,
+          "value_hex": "2710",
+          "confirmations": 296,
+          "tx_index": 7534191001258058,
+          "is_inscription": false,
+          "inscription_num": null
+        },
+        {
+          "tx_hash_big_endian": "1e6443192a9df8c0483cae22e2690505d1d770825fedb9fc8f2aad2c427db79f",
+          "tx_hash": "9fb77d422cad2a8ffcb9ed5f8270d7d1050569e222ae3c48c0f89d2a1943641e",
+          "tx_output_n": 4,
+          "script": "51207aeaf0a064e5ae738eee3552912d47c4b7734c3ba6a1189d4c2114a166d47076",
+          "value": 15569,
+          "value_hex": "3cd1",
+          "confirmations": 3894,
+          "tx_index": 5619533738251685,
+          "is_inscription": false,
+          "inscription_num": null
+        },
+        {
+          "tx_hash_big_endian": "c2e2bf544a0bed24f94ba69b1add59b480827b1ec8cd71d1fbbbab42230fa141",
+          "tx_hash": "41a10f2342abbbfbd171cdc81e7b8280b459dd1a9ba64bf924ed0b4a54bfe2c2",
+          "tx_output_n": 3,
+          "script": "51207aeaf0a064e5ae738eee3552912d47c4b7734c3ba6a1189d4c2114a166d47076",
+          "value": 16921,
+          "value_hex": "4219",
+          "confirmations": 4330,
+          "tx_index": 2309119984293239,
+          "is_inscription": false,
+          "inscription_num": null
+        },
+        {
+          "tx_hash_big_endian": "c2e2bf544a0bed24f94ba69b1add59b480827b1ec8cd71d1fbbbab42230fa141",
+          "tx_hash": "41a10f2342abbbfbd171cdc81e7b8280b459dd1a9ba64bf924ed0b4a54bfe2c2",
+          "tx_output_n": 3,
+          "script": "51207aeaf0a064e5ae738eee3552912d47c4b7734c3ba6a1189d4c2114a166d47076",
+          "value": 16921,
+          "value_hex": "4219",
+          "confirmations": 4330,
+          "tx_index": 2309119984293239,
+          "is_inscription": false,
+          "inscription_num": null
+        },
+        {
+          "tx_hash_big_endian": "c2e2bf544a0bed24f94ba69b1add59b480827b1ec8cd71d1fbbbab42230fa141",
+          "tx_hash": "41a10f2342abbbfbd171cdc81e7b8280b459dd1a9ba64bf924ed0b4a54bfe2c2",
+          "tx_output_n": 3,
+          "script": "51207aeaf0a064e5ae738eee3552912d47c4b7734c3ba6a1189d4c2114a166d47076",
+          "value": 16921,
+          "value_hex": "4219",
+          "confirmations": 4330,
+          "tx_index": 2309119984293239,
+          "is_inscription": false,
+          "inscription_num": null
+        },
+        {
+          "tx_hash_big_endian": "415ea79ab14b4cdeae7c347cf28f0ed3cf4789694216f0d821314de300cc0ffb",
+          "tx_hash": "fb0fcc00e34d3121d8f01642698947cfd30e8ff27c347caede4c4bb19aa75e41",
+          "tx_output_n": 4,
+          "script": "51207aeaf0a064e5ae738eee3552912d47c4b7734c3ba6a1189d4c2114a166d47076",
+          "value": 546,
+          "value_hex": "0222",
+          "confirmations": 4897,
+          "tx_index": 8833448502127014,
+          "is_inscription": true,
+          "inscription_num": 18215936
+        },
+        {
+          "tx_hash_big_endian": "455e7f37fee4733eb2b4d80f77fe1234f5f4785056932b670b0ef72883668650",
+          "tx_hash": "5086668328f70e0b672b93565078f4f53412fe770fd8b4b23e73e4fe377f5e45",
+          "tx_output_n": 1,
+          "script": "51207aeaf0a064e5ae738eee3552912d47c4b7734c3ba6a1189d4c2114a166d47076",
+          "value": 546,
+          "value_hex": "0222",
+          "confirmations": 4995,
+          "tx_index": 2833221622767329,
+          "is_inscription": true,
+          "inscription_num": 11386905
+        },
+        {
+          "tx_hash_big_endian": "455e7f37fee4733eb2b4d80f77fe1234f5f4785056932b670b0ef72883668650",
+          "tx_hash": "5086668328f70e0b672b93565078f4f53412fe770fd8b4b23e73e4fe377f5e45",
+          "tx_output_n": 1,
+          "script": "51207aeaf0a064e5ae738eee3552912d47c4b7734c3ba6a1189d4c2114a166d47076",
+          "value": 546,
+          "value_hex": "0222",
+          "confirmations": 4995,
+          "tx_index": 2833221622767329,
+          "is_inscription": true,
+          "inscription_num": 11386905
+        },
+        {
+          "tx_hash_big_endian": "455e7f37fee4733eb2b4d80f77fe1234f5f4785056932b670b0ef72883668650",
+          "tx_hash": "5086668328f70e0b672b93565078f4f53412fe770fd8b4b23e73e4fe377f5e45",
+          "tx_output_n": 1,
+          "script": "51207aeaf0a064e5ae738eee3552912d47c4b7734c3ba6a1189d4c2114a166d47076",
+          "value": 546,
+          "value_hex": "0222",
+          "confirmations": 4995,
+          "tx_index": 2833221622767329,
+          "is_inscription": true,
+          "inscription_num": 11386905
+        },
+        {
+          "tx_hash_big_endian": "455e7f37fee4733eb2b4d80f77fe1234f5f4785056932b670b0ef72883668650",
+          "tx_hash": "5086668328f70e0b672b93565078f4f53412fe770fd8b4b23e73e4fe377f5e45",
+          "tx_output_n": 1,
+          "script": "51207aeaf0a064e5ae738eee3552912d47c4b7734c3ba6a1189d4c2114a166d47076",
+          "value": 546,
+          "value_hex": "0222",
+          "confirmations": 4995,
+          "tx_index": 2833221622767329,
+          "is_inscription": true,
+          "inscription_num": 11386905
+        }
+      ]
+    },
+    "inscription_numbers": [
+      16632257
+    ],
+    "btc": 1000,
+    "inscriptions": [
+      {
+        "inscription_name": null,
+        "inscription_id": "c862707cd9547fe88b4cc5030f0523196e35fbea6ace27f5faec486d242e8034i0",
+        "inscription_number": 16632257,
+        "metadata": null,
+        "owner_wallet_addr": "bc1p0t40pgryukh88rhwx4ffzt28cjmhxnpm56s3382vyy22zek5wpmq8rps2l",
+        "mime_type": "text/plain;charset=utf-8",
+        "last_sale_price": null,
+        "slug": null,
+        "collection_name": null,
+        "satpoint": "ea0ce2d89fc054d56d236187682a4017996a28cf7e4881631be5cf6288f0fdb5:0:0",
+        "last_transfer_block_height": 804265,
+        "content_url": "https://bis-ord-content.fra1.cdn.digitaloceanspaces.com/ordinals/c862707cd9547fe88b4cc5030f0523196e35fbea6ace27f5faec486d242e8034i0",
+        "bis_url": "https://bestinslot.xyz/ordinals/inscription/c862707cd9547fe88b4cc5030f0523196e35fbea6ace27f5faec486d242e8034i0"
+      }
+    ],
+    "created_at": 1692749366,
+    "updated_at": null
+  },
+  "psbt": {
+    "maker_payment": 65,
+    "taker_payment": 1065,
+    "maker_change": 481776,
+    "taker_change": 85402,
+    "platform_fee": 130,
+    "miner_fee": 8630,
+    "inputs": {
+      "0": {
+        "addr": "bc1p2fzhnjtu3v42ucjj5slwuem0f3slnvvw2fyjhmlylqzw30cuw9xs4j7pld",
+        "public_key": "3953bcf50aa08d23883c8b97161e730c35b55e67b40902bcabbbffe7082b4809",
+        "type": "p2tr",
+        "tx_id": "0f3c4fa634df908c2523aab4385cc9f285104757a898018c36faca4b9f21acc6",
+        "index": 0,
+        "witness_utxo": {
+          "script": "5120524579c97c8b2aae6252a43eee676f4c61f9b18e52492befe4f804e8bf1c714d",
+          "amount": 546
+        }
+      },
+      "1": {
+        "addr": "bc1p0t40pgryukh88rhwx4ffzt28cjmhxnpm56s3382vyy22zek5wpmq8rps2l",
+        "public_key": "23dfdbe72c5ee9e687946e9c17f68589d90552e37a6435da7c05c2f1fba21f15",
+        "type": "p2tr",
+        "tx_id": "ea0ce2d89fc054d56d236187682a4017996a28cf7e4881631be5cf6288f0fdb5",
+        "index": 0,
+        "witness_utxo": {
+          "script": "51207aeaf0a064e5ae738eee3552912d47c4b7734c3ba6a1189d4c2114a166d47076",
+          "amount": 546
+        }
+      },
+      "2": {
+        "addr": "36zbLaYJ1esG5tBGmwEAQCkb4yuffeqHJy",
+        "public_key": "02f91bf3a7875bedfba3eb94a8b3ebd87fa6ec0689b55099c4b321607dc8051466",
+        "type": "p2wpkh",
+        "tx_id": "5cbbbc85bee2741011d0d26a884e746595d72ad28a7bb25e1b9f1ffedd50c0db",
+        "index": 4,
+        "witness_utxo": {
+          "script": "a9143a2b97dc74890658e9a6ec96aa6428096d14851287",
+          "amount": 486156
+        }
+      },
+      "3": {
+        "addr": "bc1p0t40pgryukh88rhwx4ffzt28cjmhxnpm56s3382vyy22zek5wpmq8rps2l",
+        "public_key": "23dfdbe72c5ee9e687946e9c17f68589d90552e37a6435da7c05c2f1fba21f15",
+        "type": "p2tr",
+        "tx_id": "ea0ce2d89fc054d56d236187682a4017996a28cf7e4881631be5cf6288f0fdb5",
+        "index": 4,
+        "witness_utxo": {
+          "script": "51207aeaf0a064e5ae738eee3552912d47c4b7734c3ba6a1189d4c2114a166d47076",
+          "amount": 90782
+        }
+      }
+    },
+    "outputs": {
+      "0": {
+        "addr": "bc1p0t40pgryukh88rhwx4ffzt28cjmhxnpm56s3382vyy22zek5wpmq8rps2l",
+        "value": 546,
+        "is_inscription": true,
+        "is_payment": false,
+        "is_change": false,
+        "is_fee": false
+      },
+      "1": {
+        "addr": "bc1p2fzhnjtu3v42ucjj5slwuem0f3slnvvw2fyjhmlylqzw30cuw9xs4j7pld",
+        "value": 546,
+        "is_inscription": true,
+        "is_payment": false,
+        "is_change": false,
+        "is_fee": false
+      },
+      "2": {
+        "addr": "36zbLaYJ1esG5tBGmwEAQCkb4yuffeqHJy",
+        "value": 481776,
+        "is_inscription": false,
+        "is_payment": false,
+        "is_change": true,
+        "is_fee": false
+      },
+      "3": {
+        "addr": "3C7trrWesxpM5aHPTCPMeeBG418C5LvXbc",
+        "value": 600,
+        "is_inscription": false,
+        "is_payment": false,
+        "is_change": false,
+        "is_fee": true
+      },
+      "4": {
+        "addr": "bc1p2fzhnjtu3v42ucjj5slwuem0f3slnvvw2fyjhmlylqzw30cuw9xs4j7pld",
+        "value": 1000,
+        "is_inscription": false,
+        "is_payment": true,
+        "is_change": false,
+        "is_fee": false
+      },
+      "5": {
+        "addr": "bc1p0t40pgryukh88rhwx4ffzt28cjmhxnpm56s3382vyy22zek5wpmq8rps2l",
+        "value": 85402,
+        "is_inscription": false,
+        "is_payment": false,
+        "is_change": true,
+        "is_fee": false
+      },
+      "6": {
+        "addr": "3C7trrWesxpM5aHPTCPMeeBG418C5LvXbc",
+        "value": 600,
+        "is_inscription": false,
+        "is_payment": false,
+        "is_change": false,
+        "is_fee": true
+      }
+    },
+    "pre_miner_fee_psbt": {
+      "base64": "cHNidP8BAP26AQIAAAAExqwhn0vK+jaMAZioV0cQhfLJXDi0qiMljJDfNKZPPA8AAAAAAP////+1/fCIYs/lG2OBSH7PKGqZF0AqaIdhI23VVMCf2OIM6gAAAAAA/////9vAUN3+H58bXrJ7itIq15VldE6IatLQERB04r6FvLtcBAAAAAD/////tf3wiGLP5RtjgUh+zyhqmRdAKmiHYSNt1VTAn9jiDOoEAAAAAP////8HIgIAAAAAAAAiUSB66vCgZOWuc47uNVKRLUfEt3NMO6ahGJ1MIRShZtRwdiICAAAAAAAAIlEgUkV5yXyLKq5iUqQ+7mdvTGH5sY5SSSvv5PgE6L8ccU3LagcAAAAAABepFDorl9x0iQZY6abslqpkKAltFIUSh1gCAAAAAAAAF6kUcmXCrsFBJ3nk1RX/qwbzMDvnDu+H6AMAAAAAAAAiUSBSRXnJfIsqrmJSpD7uZ29MYfmxjlJJK+/k+ATovxxxTXVeAQAAAAAAIlEgeurwoGTlrnOO7jVSkS1HxLdzTDumoRidTCEUoWbUcHZYAgAAAAAAABepFHJlwq7BQSd55NUV/6sG8zA75w7vhwAAAAAAAQErIgIAAAAAAAAiUSBSRXnJfIsqrmJSpD7uZ29MYfmxjlJJK+/k+ATovxxxTQEDBAMAAAABFyA5U7z1CqCNI4g8i5cWHnMMNbVeZ7QJAryru//nCCtICQABASsiAgAAAAAAACJRIHrq8KBk5a5zju41UpEtR8S3c0w7pqEYnUwhFKFm1HB2AQMEAwAAAAEXICPf2+csXunmh5RunBf2hYnZBVLjemQ12nwFwvH7oh8VAAEBIAxrBwAAAAAAF6kUOiuX3HSJBljppuyWqmQoCW0UhRKHAQMEAwAAAAEEFgAUHqcDG29YA+qj2NROJSW2sLmtn2MAAQErnmIBAAAAAAAiUSB66vCgZOWuc47uNVKRLUfEt3NMO6ahGJ1MIRShZtRwdgEDBAMAAAABFyAj39vnLF7p5oeUbpwX9oWJ2QVS43pkNdp8BcLx+6IfFQAAAAAAAAAA"
+    },
+    "post_miner_fee_psbt": {
+      "base64": "cHNidP8BAP26AQIAAAAExqwhn0vK+jaMAZioV0cQhfLJXDi0qiMljJDfNKZPPA8AAAAAAP////+1/fCIYs/lG2OBSH7PKGqZF0AqaIdhI23VVMCf2OIM6gAAAAAA/////9vAUN3+H58bXrJ7itIq15VldE6IatLQERB04r6FvLtcBAAAAAD/////tf3wiGLP5RtjgUh+zyhqmRdAKmiHYSNt1VTAn9jiDOoEAAAAAP////8HIgIAAAAAAAAiUSB66vCgZOWuc47uNVKRLUfEt3NMO6ahGJ1MIRShZtRwdiICAAAAAAAAIlEgUkV5yXyLKq5iUqQ+7mdvTGH5sY5SSSvv5PgE6L8ccU3wWQcAAAAAABepFDorl9x0iQZY6abslqpkKAltFIUSh1gCAAAAAAAAF6kUcmXCrsFBJ3nk1RX/qwbzMDvnDu+H6AMAAAAAAAAiUSBSRXnJfIsqrmJSpD7uZ29MYfmxjlJJK+/k+ATovxxxTZpNAQAAAAAAIlEgeurwoGTlrnOO7jVSkS1HxLdzTDumoRidTCEUoWbUcHZYAgAAAAAAABepFHJlwq7BQSd55NUV/6sG8zA75w7vhwAAAAAAAQErIgIAAAAAAAAiUSBSRXnJfIsqrmJSpD7uZ29MYfmxjlJJK+/k+ATovxxxTQEDBAMAAAABFyA5U7z1CqCNI4g8i5cWHnMMNbVeZ7QJAryru//nCCtICQABASsiAgAAAAAAACJRIHrq8KBk5a5zju41UpEtR8S3c0w7pqEYnUwhFKFm1HB2AQMEAwAAAAEXICPf2+csXunmh5RunBf2hYnZBVLjemQ12nwFwvH7oh8VAAEBIAxrBwAAAAAAF6kUOiuX3HSJBljppuyWqmQoCW0UhRKHAQMEAwAAAAEEFgAUHqcDG29YA+qj2NROJSW2sLmtn2MAAQErnmIBAAAAAAAiUSB66vCgZOWuc47uNVKRLUfEt3NMO6ahGJ1MIRShZtRwdgEDBAMAAAABFyAj39vnLF7p5oeUbpwX9oWJ2QVS43pkNdp8BcLx+6IfFQAAAAAAAAAA"
+    },
+    "finalized_psbt": null
+  },
+  "status": "OPEN",
+  "status_changed_at": null,
+  "created_at": 1692749367,
+  "updated_at": null
+}
